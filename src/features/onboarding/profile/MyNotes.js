@@ -59,11 +59,11 @@ export default function MyNotesScreen({ notes = [], onBack, onSaveNote }) {
             <Pressable style={[styles.headerActionCircle, styles.accentSaveButton]} onPress={handleSave} hitSlop={12}><Check color="#ffffff" size={20} strokeWidth={2.5} /></Pressable>
           </View>
           <ScrollView style={styles.editorWorkspace} showsVerticalScrollIndicator={false}>
-            <AppText type="semiBold" style={styles.sectionLabel}>NOTE TITLE</AppText>
+            <AppText type="semiBold" style={styles.sectionLabel}>TITLE</AppText>
             <View style={[styles.titleBadgeContainer, { backgroundColor: currentPalette.tagBg || currentPalette.bg, borderColor: currentPalette.tagColor || currentPalette.color }]}>
               <TextInput style={[styles.titleInputField, { color: currentPalette.tagColor || currentPalette.color }]} placeholder="Give Your Note a Title..." placeholderTextColor="#a1a1aa" value={noteTitle} onChangeText={setNoteTitle} maxLength={60} />
             </View>
-            <AppText type="semiBold" style={styles.sectionLabel}>REVELATIONS</AppText>
+            <AppText type="semiBold" style={styles.sectionLabel}>CONTENT</AppText>
             <View style={styles.classyInputCard}>
               <View style={[styles.premiumAccentIndicator, { backgroundColor: currentPalette.tagColor || currentPalette.color }]} />
               <View style={styles.inputInnerWorkspace}>
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   editorWorkspace: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', letterSpacing: 0.8, marginBottom: 10, marginTop: 14 },
   titleBadgeContainer: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, alignSelf: 'flex-start', width: '100%', marginBottom: 8 },
-  titleInputField: { fontSize: 15, fontWeight: '700', padding: 0 },
+  titleInputField: { fontSize: 15, fontWeight: '400', padding: 0 },
   classyInputCard: { backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', overflow: 'hidden', minHeight: 280, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 12 }, android: { elevation: 2 } }) },
   premiumAccentIndicator: { width: 5 },
   inputInnerWorkspace: { flex: 1, padding: 16 },

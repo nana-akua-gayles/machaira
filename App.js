@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  View, Image, StyleSheet, StatusBar, Platform 
+  View, Image, StyleSheet, StatusBar, Platform, Pressable 
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -72,7 +72,7 @@ const MemoizedFavoriteBooks = React.memo(({ navigation }) => (
 
 const MemoizedHomeScreen = React.memo(({ 
   navigation, route, user, profileVisible, setProfileVisible, 
-  onNavigateToSupport, onNavigateToMenuOption 
+  onNavigateToSupport, onNavigateToMenuOption, onLogout 
 }) => (
   <View style={[styles.flexOne, { paddingTop: useSafeAreaInsets().top }]}>
     <HomeScreen 
@@ -83,6 +83,7 @@ const MemoizedHomeScreen = React.memo(({
       setProfileVisible={setProfileVisible} 
       onNavigateToSupport={onNavigateToSupport} 
       onNavigateToMenuOption={onNavigateToMenuOption}
+      onLogout={onLogout}
     />
   </View>
 ));
@@ -90,12 +91,12 @@ const MemoizedHomeScreen = React.memo(({
 // ==========================================
 // CORE TAB NAVIGATION COMPONENT
 // ==========================================
-function BaseTabNavigator({ route, navigation, user }) {
+function BaseTabNavigator({ route, navigation, user, onLogout }) {
   const insets = useSafeAreaInsets();
   const [profileVisible, setProfileVisible] = useState(false);
 
   const activeUserContext = useMemo(() => 
-    user ? user : { name: 'Guest User', photo: null, email: '', isGuest: true },
+    user ? user : null,
   [user]);
 
   const renderIcon = useCallback((IconComponent, focused, color) => (
@@ -108,6 +109,7 @@ function BaseTabNavigator({ route, navigation, user }) {
   return (
     <Tab.Navigator
       screenOptions={{
+        headerScreen: false,
         headerShown: false,
         tabBarActiveTintColor: '#ef4444', 
         tabBarInactiveTintColor: '#94a3b8', 
@@ -130,6 +132,7 @@ function BaseTabNavigator({ route, navigation, user }) {
             user={activeUserContext} 
             profileVisible={profileVisible} 
             setProfileVisible={setProfileVisible} 
+            onLogout={onLogout}
             onNavigateToSupport={() => props.navigation.navigate('SupportFeedback')} 
             onNavigateToMenuOption={useCallback((targetId) => {
               setProfileVisible(false);
@@ -226,6 +229,15 @@ export default function App() {
     });
   }, []);
 
+  const handleGlobalLogout = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (e) {
+      console.warn("Error signing out from Supabase layer:", e);
+    }
+  }, []);
+
   useEffect(() => {
     let authSubscription;
 
@@ -245,7 +257,8 @@ export default function App() {
             setHasCompletedOnboarding(true);
           } else if (event === 'SIGNED_OUT') {
             setAuthenticatedUser(null);
-            setHasCompletedOnboarding(false);
+            // Retain onboarding true state so they remain on home layout under Guest Context
+            setHasCompletedOnboarding(true);
           }
         });
         
@@ -312,7 +325,13 @@ export default function App() {
             ) : (
               <>
                 <Stack.Screen key={navigationKey} name="MainTabs">
-                  {(props) => <MemoizedBaseTabNavigator {...props} user={authenticatedUser} />}
+                  {(props) => (
+                    <MemoizedBaseTabNavigator 
+                      {...props} 
+                      user={authenticatedUser} 
+                      onLogout={handleGlobalLogout} 
+                    />
+                  )}
                 </Stack.Screen>
 
                 <Stack.Screen name="SupportFeedback" component={SupportFeedbackScreen} />

@@ -59,7 +59,8 @@ export default function MachairaHome({
   onNavigateToSupport, 
   profileVisible, 
   setProfileVisible,
-  onNavigateToMenuOption 
+  onNavigateToMenuOption,
+  onLogout // <-- 1. ADDED THIS PROP ACCEPTER
 }) {
   const [activeTab, setActiveTab] = useState('Past');
 
@@ -67,7 +68,6 @@ export default function MachairaHome({
   const userDisplayName = user?.name || 'Guest';
   const userAvatarUrl = user?.photo;
 
-  // Stable navigation proxies to prevent component tree thrashing
   const handleProfilePress = useCallback(() => setProfileVisible(true), [setProfileVisible]);
   const handleBibleNavigation = useCallback(() => navigation.navigate('Bible'), [navigation]);
   
@@ -158,7 +158,6 @@ export default function MachairaHome({
           ))}
         </View>
         
-        {/* Isolated Conditional Content Injections */}
         {activeTab === 'Past' ? (
           <PastTabContent />
         ) : (
@@ -171,6 +170,7 @@ export default function MachairaHome({
         visible={profileVisible} 
         onClose={() => setProfileVisible(false)} 
         user={user} 
+        onLogout={onLogout} // <-- 2. ROUTED THE PROP HERE
         onNavigateToSupport={handleSupportNavigation}
         onNavigateToMenuOption={onNavigateToMenuOption}
       />
@@ -235,7 +235,6 @@ const styles = StyleSheet.create({
   fallbackContainer: { backgroundColor: '#ffffff', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', marginTop: 10 },
   fallbackText: { color: '#64748b', fontSize: 14, marginTop: 8 },
   
-  // Icon Layout Polish Props
   bellIconSpacing: { marginRight: 5 },
   calendarIconSpacing: { marginRight: 6 },
   playIconSpacing: { marginRight: 8 },

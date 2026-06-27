@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,11 +13,12 @@ import {
   TextInput,
   Keyboard,
   Platform,
-  LayoutAnimation
+  LayoutAnimation,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, Mail, UserPlus, Lock, ArrowRight, X } from 'lucide-react-native';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import { AppText } from '../../components/AppText';
 import { supabase } from '../../config/supabaseClient';
 import MachairaLogo from '../../../assets/images/MLogo.png';
@@ -48,6 +49,7 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
   const [showSplash, setShowSplash] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const [authLoading, setAuthLoading] = useState(null);
+  const [emailSheetVisible, setEmailSheetVisible] = useState(false);
 
   // Email Flow Input States
   const [email, setEmail] = useState('');
@@ -59,10 +61,6 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
   const [focusedInput, setFocusedInput] = useState(null); // 'email' | 'password' | null
 
   const { width } = useWindowDimensions();
-  const bottomSheetRef = useRef(null);
-
-  // Dynamically calculates explicit height based on the child elements inside BottomSheetView
-  const fallbackSnapPoints = useMemo(() => ['65%'], []);
 
   const splashOpacity = useRef(new Animated.Value(1)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
@@ -133,12 +131,12 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
 
   const handleOpenEmailSheet = () => {
     if (authLoading) return;
-    bottomSheetRef.current?.expand();
+    setEmailSheetVisible(true);
   };
 
   const handleCloseEmailSheet = () => {
     Keyboard.dismiss();
-    bottomSheetRef.current?.close();
+    setEmailSheetVisible(false);
   };
 
   // Modern UI layout modifier transitions
@@ -213,11 +211,6 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
       setAuthLoading(null);
     }
   };
-
-  const renderBackdrop = useCallback(
-    props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />,
-    []
-  );
 
   return (
     <View style={styles.masterContainer}>
@@ -339,135 +332,135 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
           </View>
 
           {/* ==========================================
-              DYNAMIC INTUITIVE FIRST CLASS BOTTOM SHEET
-             ========================================== */}
-          <BottomSheet
-            ref={bottomSheetRef}
-            index={-1}
-            snapPoints={fallbackSnapPoints}
-            enableDynamicSizing={true} // Computes content layout space accurately dynamically
-            enablePanDownToClose
-            keyboardBehavior={Platform.OS === 'ios' ? 'extend' : 'interactive'}
-            keyboardBlurBehavior="restore"
-            backdropComponent={renderBackdrop}
-            backgroundStyle={styles.sheetBackground}
-            handleIndicatorStyle={styles.sheetIndicator}
+              NATIVE MODAL (REPLACES BOTTOM SHEET)
+              ========================================== */}
+          <Modal
+            visible={emailSheetVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={handleCloseEmailSheet}
           >
-            <BottomSheetView style={styles.sheetWorkspace}>
-              <View style={styles.sheetHeader}>
-                <View>
-                  <AppText type="black" style={styles.sheetMainTitle}>
-                    {usePassword ? (isSignUpMode ? 'Create Account' : 'Welcome Back') : 'Secure Access'}
-                  </AppText>
-                  <AppText type="regular" style={styles.sheetSubtitle}>
-                    {usePassword ? 'Access your historical archive safely' : 'Sign in passwordless using a token link'}
-                  </AppText>
-                </View>
-                <Pressable onPress={handleCloseEmailSheet} style={styles.closeSheetIconCircle} hitSlop={8}>
-                  <X color="#18181b" size={16} strokeWidth={3} />
-                </Pressable>
-              </View>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={handleCloseEmailSheet}>
+                <View style={styles.modalDismissArea} />
+              </TouchableWithoutFeedback>
 
-              <View style={styles.sheetFormBody}>
-                {/* Email Input Frame Block */}
-                <View style={[
-                  styles.inputContainerRow,
-                  focusedInput === 'email' && styles.inputContainerRowActive
-                ]}>
-                  <Mail 
-                    color={focusedInput === 'email' ? '#09090b' : '#a1a1aa'} 
-                    size={18} 
-                    strokeWidth={2.5} 
-                    style={styles.fieldInputIcon} 
-                  />
-                  <TextInput
-                    style={styles.textInputAsset}
-                    placeholder="Enter your email address..."
-                    placeholderTextColor="#a1a1aa"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    value={email}
-                    onChangeText={setEmail}
-                    onFocus={() => setFocusedInput('email')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
+              <View style={[styles.sheetBackground, styles.sheetWorkspace]}>
+                <View style={styles.sheetHeader}>
+                  <View>
+                    <AppText type="black" style={styles.sheetMainTitle}>
+                      {usePassword ? (isSignUpMode ? 'Create Account' : 'Welcome Back') : 'Secure Access'}
+                    </AppText>
+                    <AppText type="regular" style={styles.sheetSubtitle}>
+                      {usePassword ? 'Access your historical archive safely' : 'Sign in passwordless using a token link'}
+                    </AppText>
+                  </View>
+                  <Pressable onPress={handleCloseEmailSheet} style={styles.closeSheetIconCircle} hitSlop={8}>
+                    <X color="#18181b" size={16} strokeWidth={3} />
+                  </Pressable>
                 </View>
 
-                {/* Password Input Frame Block */}
-                {usePassword && (
+                <View style={styles.sheetFormBody}>
+                  {/* Email Input Frame Block */}
                   <View style={[
                     styles.inputContainerRow,
-                    focusedInput === 'password' && styles.inputContainerRowActive
+                    focusedInput === 'email' && styles.inputContainerRowActive
                   ]}>
-                    <Lock 
-                      color={focusedInput === 'password' ? '#09090b' : '#a1a1aa'} 
+                    <Mail 
+                      color={focusedInput === 'email' ? '#09090b' : '#a1a1aa'} 
                       size={18} 
                       strokeWidth={2.5} 
                       style={styles.fieldInputIcon} 
                     />
                     <TextInput
                       style={styles.textInputAsset}
-                      placeholder="Enter your password..."
+                      placeholder="Enter your email address..."
                       placeholderTextColor="#a1a1aa"
-                      secureTextEntry
+                      keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
-                      value={password}
-                      onChangeText={setPassword}
-                      onFocus={() => setFocusedInput('password')}
+                      value={email}
+                      onChangeText={setEmail}
+                      onFocus={() => setFocusedInput('email')}
                       onBlur={() => setFocusedInput(null)}
                     />
                   </View>
-                )}
 
-                {/* Main Action Direct Submission Core Button */}
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.sheetSubmitActionButton, 
-                    pressed && styles.submitPressedEffect,
-                    authLoading && styles.disabledBtn
-                  ]}
-                  onPress={executeEmailAuthTransaction}
-                  disabled={!!authLoading}
-                >
-                  {authLoading === 'email' ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <>
-                      <AppText type="bold" style={styles.sheetSubmitButtonText}>
-                        {usePassword ? (isSignUpMode ? 'Register Account' : 'Sign In Now') : 'Send Magic Link'}
-                      </AppText>
-                      <ArrowRight color="#ffffff" size={16} strokeWidth={2.5} style={styles.submitArrowSpace} />
-                    </>
+                  {/* Password Input Frame Block */}
+                  {usePassword && (
+                    <View style={[
+                      styles.inputContainerRow,
+                      focusedInput === 'password' && styles.inputContainerRowActive
+                    ]}>
+                      <Lock 
+                        color={focusedInput === 'password' ? '#09090b' : '#a1a1aa'} 
+                        size={18} 
+                        strokeWidth={2.5} 
+                        style={styles.fieldInputIcon} 
+                      />
+                      <TextInput
+                        style={styles.textInputAsset}
+                        placeholder="Enter your password..."
+                        placeholderTextColor="#a1a1aa"
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        value={password}
+                        onChangeText={setPassword}
+                        onFocus={() => setFocusedInput('password')}
+                        onBlur={() => setFocusedInput(null)}
+                      />
+                    </View>
                   )}
-                </Pressable>
 
-                {/* Flow and Runtime Authentication Architecture Switches */}
-                <View style={styles.sheetModeToggleFooterContainer}>
+                  {/* Main Action Direct Submission Core Button */}
                   <Pressable 
-                    onPress={togglePasswordMode}
-                    style={styles.textTogglePillInline}
+                    style={({ pressed }) => [
+                      styles.sheetSubmitActionButton, 
+                      pressed && styles.submitPressedEffect,
+                      authLoading && styles.disabledBtn
+                    ]}
+                    onPress={executeEmailAuthTransaction}
+                    disabled={!!authLoading}
                   >
-                    <AppText type="semiBold" style={styles.sheetToggleActionLabel}>
-                      {usePassword ? '✨ Use Passwordless Sign-In' : '🔑 Use Password Account'}
-                    </AppText>
+                    {authLoading === 'email' ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <AppText type="bold" style={styles.sheetSubmitButtonText}>
+                          {usePassword ? (isSignUpMode ? 'Register Account' : 'Sign In Now') : 'Send Magic Link'}
+                        </AppText>
+                        <ArrowRight color="#ffffff" size={16} strokeWidth={2.5} style={styles.submitArrowSpace} />
+                      </>
+                    )}
                   </Pressable>
 
-                  {usePassword && (
+                  {/* Flow Switches */}
+                  <View style={styles.sheetModeToggleFooterContainer}>
                     <Pressable 
-                      onPress={toggleSignUpMode}
+                      onPress={togglePasswordMode}
                       style={styles.textTogglePillInline}
                     >
-                      <AppText type="medium" style={styles.sheetSecondaryToggleLabel}>
-                        {isSignUpMode ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
+                      <AppText type="semiBold" style={styles.sheetToggleActionLabel}>
+                        {usePassword ? '✨ Use Passwordless Sign-In' : '🔑 Use Password Account'}
                       </AppText>
                     </Pressable>
-                  )}
+
+                    {usePassword && (
+                      <Pressable 
+                        onPress={toggleSignUpMode}
+                        style={styles.textTogglePillInline}
+                      >
+                        <AppText type="medium" style={styles.sheetSecondaryToggleLabel}>
+                          {isSignUpMode ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
+                        </AppText>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               </View>
-            </BottomSheetView>
-          </BottomSheet>
+            </View>
+          </Modal>
 
         </SafeAreaView>
       )}
@@ -510,10 +503,13 @@ const styles = StyleSheet.create({
   paginationDotInactive: { width: 8, backgroundColor: 'rgba(53, 42, 72, 0.15)' },
   circleActionButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#352a48', alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#352a48', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 6 },
   
-  // FIRST CLASS BOTTOM SHEET STYLING
-  sheetBackground: { backgroundColor: '#ffffff', borderRadius: 36, ...Platform.select({ ios: { shadowColor: '#09090b', shadowOffset: { width: 0, height: -14 }, shadowOpacity: 0.06, shadowRadius: 20 }, android: { elevation: 20 } }) },
-  sheetIndicator: { backgroundColor: '#e4e4e7', width: 40, height: 4, marginTop: 4 },
-  sheetWorkspace: { paddingHorizontal: 28, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 44 : 24 },
+  // MODAL BACKDROP AND STRUCTURE
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(9, 9, 11, 0.4)', justifyContent: 'flex-end' },
+  modalDismissArea: { flex: 1 },
+
+  // SHEET POSITIONING AND STYLING
+  sheetBackground: { backgroundColor: '#ffffff', borderTopLeftRadius: 36, borderTopRightRadius: 36, ...Platform.select({ ios: { shadowColor: '#09090b', shadowOffset: { width: 0, height: -14 }, shadowOpacity: 0.06, shadowRadius: 20 }, android: { elevation: 20 } }) },
+  sheetWorkspace: { paddingHorizontal: 28, paddingTop: 32, paddingBottom: Platform.OS === 'ios' ? 44 : 24 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
   sheetMainTitle: { fontSize: 24, color: '#09090b', letterSpacing: -0.6, lineHeight: 30 },
   sheetSubtitle: { fontSize: 14, color: '#71717a', marginTop: 4, lineHeight: 20 },
@@ -524,7 +520,7 @@ const styles = StyleSheet.create({
   fieldInputIcon: { marginRight: 12 },
   textInputAsset: { flex: 1, color: '#09090b', fontSize: 15, fontWeight: '600' },
   sheetSubmitActionButton: { flexDirection: 'row', backgroundColor: '#09090b', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 6, elevation: 2, shadowColor: '#09090b', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  submitPressedEffect: { opacity: 0.85, transform: [{ scale: 0.99 }] },
+  submitPressedEffect: { opacity: 0.85 },
   sheetSubmitButtonText: { color: '#ffffff', fontSize: 15 },
   submitArrowSpace: { marginLeft: 6 },
   sheetModeToggleFooterContainer: { alignItems: 'center', marginTop: 10, gap: 12 },
