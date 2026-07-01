@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react-native';
-import { AppText } from '../../../components/AppText';
+import { AppText } from '../../../../components/AppText';
 
 const FAQ_DATA = [
   { id: '1', q: 'Can I read the Machaira offline?', a: 'Yes! Every episode is fully accessible even without an internet connection.' },

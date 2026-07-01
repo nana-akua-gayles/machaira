@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  View, Image, StyleSheet, StatusBar, Platform, Pressable 
+  View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert 
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,29 +8,27 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { Home, Book, ShoppingBag, FolderHeart } from 'lucide-react-native';
-import { 
-  useFonts, 
-  Montserrat_400Regular, 
-  Montserrat_600SemiBold, 
-  Montserrat_700Bold, 
-  Montserrat_900Black 
-} from '@expo-google-fonts/montserrat';
+import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_900Black} from '@expo-google-fonts/montserrat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 import { supabase } from './src/config/supabaseClient';
 import { AppText } from './src/components/AppText';
 import { OnboardingScreen } from './src/features/onboarding/OnboardingScreen';
 import HomeScreen from './src/features/home/HomeScreenContent';
 import { BibleTabContent } from './src/features/bible/BibleTabContent';
-import { SupportFeedbackScreen } from './src/features/onboarding/profile/SupportFeedbackScreen'; 
-import MyNotesTabContent from './src/features/onboarding/profile/MyNotes'; 
-import { Testimony } from './src/features/onboarding/profile/Testimony'; 
-import { FavoriteBooksScreen } from './src/features/onboarding/profile/FavoriteBooks'; 
+import { SupportFeedbackScreen } from './src/features/onboarding/profile/AccUtilities/SupportFeedbackScreen'; 
+import MyNotesTabContent from './src/features/onboarding/profile/AccUtilities/MyNotes'; 
+import { Testimony } from './src/features/onboarding/profile/AccUtilities/Testimony'; 
+import { FavoriteBooksScreen } from './src/features/onboarding/profile/AccUtilities/FavoriteBooks'; 
 import machairabot from './assets/images/machairabot.png';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+const DISK_USER_CACHE_KEY = '@machaira_authenticated_user_cache';
 
 // ==========================================
 // STATIC & MEMOIZED SUB-SCREENS
@@ -72,7 +70,7 @@ const MemoizedFavoriteBooks = React.memo(({ navigation }) => (
 
 const MemoizedHomeScreen = React.memo(({ 
   navigation, route, user, profileVisible, setProfileVisible, 
-  onNavigateToSupport, onNavigateToMenuOption, onLogout 
+  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount 
 }) => (
   <View style={[styles.flexOne, { paddingTop: useSafeAreaInsets().top }]}>
     <HomeScreen 
@@ -84,6 +82,9 @@ const MemoizedHomeScreen = React.memo(({
       onNavigateToSupport={onNavigateToSupport} 
       onNavigateToMenuOption={onNavigateToMenuOption}
       onLogout={onLogout}
+      onTriggerLogin={onTriggerLogin}
+      onChangeAccount={onChangeAccount}
+      onDeleteAccount={onDeleteAccount}
     />
   </View>
 ));
@@ -91,13 +92,11 @@ const MemoizedHomeScreen = React.memo(({
 // ==========================================
 // CORE TAB NAVIGATION COMPONENT
 // ==========================================
-function BaseTabNavigator({ route, navigation, user, onLogout }) {
+function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount }) {
   const insets = useSafeAreaInsets();
   const [profileVisible, setProfileVisible] = useState(false);
 
-  const activeUserContext = useMemo(() => 
-    user ? user : null,
-  [user]);
+  const activeUserContext = useMemo(() => user, [user]);
 
   const renderIcon = useCallback((IconComponent, focused, color) => (
     <View style={styles.iconContainer}>
@@ -106,10 +105,26 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
     </View>
   ), []);
 
+  const handleMenuOption = useCallback((targetId) => {
+    setProfileVisible(false);
+    if (targetId === 'notes' || targetId === 'Saved') {
+      navigation.navigate('MyNotes');
+    } else if (targetId === 'testimony') {
+      navigation.navigate('Testimony');
+    } else if (targetId === 'books') {
+      navigation.navigate('FavoriteBooks');
+    } else if (targetId === 'support') {
+      navigation.navigate('SupportFeedback');
+    }
+  }, [navigation]);
+
+  const handleSupportNavigation = useCallback(() => {
+    navigation.navigate('SupportFeedback');
+  }, [navigation]);
+
   return (
     <Tab.Navigator
       screenOptions={{
-        headerScreen: false,
         headerShown: false,
         tabBarActiveTintColor: '#ef4444', 
         tabBarInactiveTintColor: '#94a3b8', 
@@ -123,6 +138,7 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
       <Tab.Screen 
         name="Home"
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => renderIcon(Home, focused, color)
         }}
       >
@@ -133,17 +149,11 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
             profileVisible={profileVisible} 
             setProfileVisible={setProfileVisible} 
             onLogout={onLogout}
-            onNavigateToSupport={() => props.navigation.navigate('SupportFeedback')} 
-            onNavigateToMenuOption={useCallback((targetId) => {
-              setProfileVisible(false);
-              if (targetId === 'notes' || targetId === 'Saved') {
-                props.navigation.navigate('MyNotes');
-              } else if (targetId === 'testimony') {
-                props.navigation.navigate('Testimony');
-              } else if (targetId === 'books') {
-                props.navigation.navigate('FavoriteBooks');
-              }
-            }, [props.navigation])}
+            onTriggerLogin={onTriggerLogin}
+            onChangeAccount={onChangeAccount}
+            onDeleteAccount={onDeleteAccount}
+            onNavigateToSupport={handleSupportNavigation} 
+            onNavigateToMenuOption={handleMenuOption}
           />
         )}
       </Tab.Screen>
@@ -151,6 +161,7 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
       <Tab.Screen 
         name="Bible"
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => renderIcon(Book, focused, color)
         }}
       >
@@ -161,6 +172,7 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
         name="AI_Chat" 
         component={AIChatScreen} 
         options={{
+          headerShown: false,
           tabBarButton: (props) => (
             <Pressable 
               {...props} 
@@ -188,14 +200,14 @@ function BaseTabNavigator({ route, navigation, user, onLogout }) {
 
       <Tab.Screen 
         name="Store" 
-        options={{ tabBarIcon: ({ color, focused }) => renderIcon(ShoppingBag, focused, color) }}
+        options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(ShoppingBag, focused, color) }}
       >
         {() => <CenterScreen title="Store Screen" />}
       </Tab.Screen>
       
       <Tab.Screen 
         name="Library" 
-        options={{ tabBarIcon: ({ color, focused }) => renderIcon(FolderHeart, focused, color) }}
+        options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(FolderHeart, focused, color) }}
       >
         {() => <CenterScreen title="Library Screen" />}
       </Tab.Screen>
@@ -220,13 +232,26 @@ export default function App() {
     'Montserrat-Black': Montserrat_900Black,
   });
 
+  const writeProfileDiskCache = async (profileObj) => {
+    try {
+      if (profileObj) {
+        await AsyncStorage.setItem(DISK_USER_CACHE_KEY, JSON.stringify(profileObj));
+      }
+    } catch (err) {
+      console.warn("Disk writing write validation fault:", err);
+    }
+  };
+
   const mapSupabaseUserToState = useCallback((user) => {
-    setAuthenticatedUser({
+    const profileModel = {
       id: user.id,
       name: user.user_metadata?.full_name || user.email?.split('@')[0] || "User Account",
       email: user.email,
-      photo: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
-    });
+      photo: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      isLoggedOut: false
+    };
+    setAuthenticatedUser(profileModel);
+    writeProfileDiskCache(profileModel);
   }, []);
 
   const handleGlobalLogout = useCallback(async () => {
@@ -238,14 +263,55 @@ export default function App() {
     }
   }, []);
 
+  const handleSwitchToNewAccount = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(DISK_USER_CACHE_KEY);
+      setAuthenticatedUser(null);
+      setHasCompletedOnboarding(false);
+    } catch (err) {
+      console.warn("Failed clearing core layout storage identity:", err);
+    }
+  }, []);
+
+  const handleAccountDeletion = useCallback(async () => {
+    try {
+      console.log("Processing secure account deletion for UID:", authenticatedUser?.id);
+      const { data, error } = await supabase.rpc('delete_user_account_trigger');
+      
+      if (error) throw new Error(error.message);
+
+      console.log("Database confirmation received successfully:", data);
+      await AsyncStorage.removeItem(DISK_USER_CACHE_KEY);
+      setAuthenticatedUser(null);
+      await handleGlobalLogout();
+      setHasCompletedOnboarding(false);
+      Alert.alert("Success", "Your profile has been permanently removed.");
+    } catch (e) {
+      console.warn("Error running account deletion flow:", e);
+      Alert.alert("Deletion Failed", `Server rejected data teardown request: ${e.message}`);
+    }
+  }, [authenticatedUser, handleGlobalLogout]);
+
+  const handleTriggerLogin = useCallback(() => {
+    setHasCompletedOnboarding(false);
+  }, []);
+
   useEffect(() => {
     let authSubscription;
 
     async function prepareApplication() {
       try {
+        const cachedPayload = await AsyncStorage.getItem(DISK_USER_CACHE_KEY);
+        if (cachedPayload) {
+          const parsedUser = JSON.parse(cachedPayload);
+          setAuthenticatedUser(parsedUser);
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           mapSupabaseUserToState(session.user);
+          setHasCompletedOnboarding(true);
+        } else if (cachedPayload) {
           setHasCompletedOnboarding(true);
         }
 
@@ -256,9 +322,13 @@ export default function App() {
             mapSupabaseUserToState(session.user);
             setHasCompletedOnboarding(true);
           } else if (event === 'SIGNED_OUT') {
-            setAuthenticatedUser(null);
-            // Retain onboarding true state so they remain on home layout under Guest Context
-            setHasCompletedOnboarding(true);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            setAuthenticatedUser(prev => {
+              if (!prev) return null;
+              const closedState = { ...prev, isLoggedOut: true };
+              writeProfileDiskCache(closedState);
+              return closedState;
+            });
           }
         });
         
@@ -273,15 +343,9 @@ export default function App() {
     prepareApplication();
 
     return () => {
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
+      if (authSubscription) authSubscription.unsubscribe();
     };
   }, [mapSupabaseUserToState]);
-
-  const navigationKey = useMemo(() => {
-    return authenticatedUser ? `auth-${authenticatedUser.id}` : 'guest-layout';
-  }, [authenticatedUser]);
 
   const onLayoutRootView = useCallback(async () => {
     if (appIsReady && fontsLoaded) {
@@ -290,7 +354,7 @@ export default function App() {
   }, [appIsReady, fontsLoaded]);
 
   const handleExploreAsGuest = useCallback(() => {
-    setAuthenticatedUser(null);
+    setAuthenticatedUser(null); 
     setHasCompletedOnboarding(true);
   }, []);
 
@@ -319,17 +383,22 @@ export default function App() {
                     onExploreAsGuest={handleExploreAsGuest} 
                     onAuthSuccess={handleAuthSuccess} 
                     onEmailAuthPress={() => console.log('Email auth requested...')}
+                    isReturningFromGuest={authenticatedUser?.isLoggedOut ?? false}
+                    savedUserContext={authenticatedUser}
                   />
                 )}
               </Stack.Screen>
             ) : (
-              <>
-                <Stack.Screen key={navigationKey} name="MainTabs">
+              <Stack.Group>
+                <Stack.Screen name="MainTabs">
                   {(props) => (
                     <MemoizedBaseTabNavigator 
                       {...props} 
                       user={authenticatedUser} 
                       onLogout={handleGlobalLogout} 
+                      onTriggerLogin={handleTriggerLogin}
+                      onChangeAccount={handleSwitchToNewAccount}
+                      onDeleteAccount={handleAccountDeletion}
                     />
                   )}
                 </Stack.Screen>
@@ -338,7 +407,7 @@ export default function App() {
                 <Stack.Screen name="MyNotes" component={MemoizedMyNotes} />
                 <Stack.Screen name="Testimony" component={MemoizedTestimony} />
                 <Stack.Screen name="FavoriteBooks" component={MemoizedFavoriteBooks} />
-              </>
+              </Stack.Group>
             )}
           </Stack.Navigator>
         </NavigationContainer>

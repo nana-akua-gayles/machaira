@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, TextInput, ScrollView, Linking, Platform, Alert, KeyboardAvoidingView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import this for Android dynamic protection
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
 import { ChevronLeft, Phone, Mail, FileText, Clock } from 'lucide-react-native';
-import { AppText } from '../../../components/AppText';
+import { AppText } from '../../../../components/AppText';
 import FAQSection from './FAQSection';
 
 export const SupportFeedbackScreen = ({ navigation }) => {
-  const insets = useSafeAreaInsets(); // Grabs real-time device top & bottom hardware dimensions
+  const insets = useSafeAreaInsets(); 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [duration, setDuration] = useState('');
   const [description, setDescription] = useState('');

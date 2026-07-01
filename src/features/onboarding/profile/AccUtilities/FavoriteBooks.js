@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, FlatList, Image, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Heart, BookOpen } from 'lucide-react-native';
-import { AppText } from '../../../components/AppText';
+import { AppText } from '../../../../components/AppText';
 
 // Updated Mock Data structured specifically as Written Machaira Episodes
 const MOCK_TEXT_EPISODES = [

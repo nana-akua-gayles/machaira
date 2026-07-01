@@ -1,36 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  ScrollView, 
-  Pressable, 
-  FlatList, 
-  Platform,
-  Image,
-  TextInput,
-  Switch,
-  KeyboardAvoidingView,
-  Modal,
-  StatusBar
-} from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, FlatList, Platform, Image, TextInput, Switch, KeyboardAvoidingView, Modal,
+  StatusBar} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { 
-  Heart, 
-  MessageSquare, 
-  PenSquare, 
-  User, 
-  EyeOff, 
-  Eye,
-  ArrowLeft,
-  X,
-  Send,
-  Sparkles,
-  Image as ImageIcon
+import { Heart, MessageSquare, PenSquare, User, EyeOff, Eye, ArrowLeft, X, Send, Sparkles, Image as ImageIcon
 } from 'lucide-react-native';
 
-import { AppText } from '../../../components/AppText';
+import { AppText } from '../../../../components/AppText';
 
-// Initial Mock Feed Data with user-typed custom categories and image blocks
 const INITIAL_MOCK_DATA = [
   {
     id: '1',

@@ -45,9 +45,9 @@ const ONBOARDING_STEPS = [
   },
 ];
 
-export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
-  const [showSplash, setShowSplash] = useState(true);
-  const [currentStep, setCurrentStep] = useState(0);
+export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess, isReturningFromGuest }) => {
+  const [showSplash, setShowSplash] = useState(!isReturningFromGuest);
+  const [currentStep, setCurrentStep] = useState(isReturningFromGuest ? ONBOARDING_STEPS.length - 1 : 0);
   const [authLoading, setAuthLoading] = useState(null);
   const [emailSheetVisible, setEmailSheetVisible] = useState(false);
 
@@ -57,18 +57,19 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [usePassword, setUsePassword] = useState(false);
 
-  // First-Class Focus Styling States
   const [focusedInput, setFocusedInput] = useState(null); // 'email' | 'password' | null
 
   const { width } = useWindowDimensions();
 
-  const splashOpacity = useRef(new Animated.Value(1)).current;
+  const splashOpacity = useRef(new Animated.Value(isReturningFromGuest ? 0 : 1)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
-  const contentFade = useRef(new Animated.Value(1)).current;
+  const contentFade = useRef(new Animated.Value(isReturningFromGuest ? 1 : 0)).current;
 
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
 
   useEffect(() => {
+    if (isReturningFromGuest) return;
+
     contentFade.setValue(0);
 
     const breathingAnimation = Animated.loop(
@@ -91,7 +92,7 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
       clearTimeout(splashTimer);
       breathingAnimation.stop();
     };
-  }, []);
+  }, [isReturningFromGuest]);
 
   const handleNextStep = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -139,7 +140,6 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
     setEmailSheetVisible(false);
   };
 
-  // Modern UI layout modifier transitions
   const togglePasswordMode = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUsePassword(!usePassword);
@@ -331,9 +331,7 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
             )}
           </View>
 
-          {/* ==========================================
-              NATIVE MODAL (REPLACES BOTTOM SHEET)
-              ========================================== */}
+
           <Modal
             visible={emailSheetVisible}
             animationType="slide"
@@ -413,7 +411,6 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess }) => {
                     </View>
                   )}
 
-                  {/* Main Action Direct Submission Core Button */}
                   <Pressable 
                     style={({ pressed }) => [
                       styles.sheetSubmitActionButton, 
@@ -502,12 +499,8 @@ const styles = StyleSheet.create({
   paginationDotActive: { width: 24, backgroundColor: '#ef4444' },
   paginationDotInactive: { width: 8, backgroundColor: 'rgba(53, 42, 72, 0.15)' },
   circleActionButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#352a48', alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#352a48', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 6 },
-  
-  // MODAL BACKDROP AND STRUCTURE
   modalOverlay: { flex: 1, backgroundColor: 'rgba(9, 9, 11, 0.4)', justifyContent: 'flex-end' },
   modalDismissArea: { flex: 1 },
-
-  // SHEET POSITIONING AND STYLING
   sheetBackground: { backgroundColor: '#ffffff', borderTopLeftRadius: 36, borderTopRightRadius: 36, ...Platform.select({ ios: { shadowColor: '#09090b', shadowOffset: { width: 0, height: -14 }, shadowOpacity: 0.06, shadowRadius: 20 }, android: { elevation: 20 } }) },
   sheetWorkspace: { paddingHorizontal: 28, paddingTop: 32, paddingBottom: Platform.OS === 'ios' ? 44 : 24 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },

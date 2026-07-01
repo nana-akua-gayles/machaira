@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, Platform, SafeAreaView, TextInput, KeyboardAvoidingView, ScrollView, Share, StatusBar } from 'react-native';
 import { ArrowLeft, Plus, FileText, Sparkles, Check, Share2, Edit3 } from 'lucide-react-native';
-import { AppText } from '../../../components/AppText';
+import { AppText } from '../../../../components/AppText';
 
 const PALETTES = [
   { color: '#ef4444', bg: '#fff5f5' }, 

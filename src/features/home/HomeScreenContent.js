@@ -1,11 +1,15 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, Pressable, ScrollView, StyleSheet, Image, Platform } from 'react-native';
-import { BookOpen, Search, History, Layers, Bookmark, Play, Bell, Calendar, BookText, User } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BookOpen, Search, History, Layers, Bookmark, Play, Bell, Calendar, BookText, User, Lock } from 'lucide-react-native';
 
 import { AppText } from '../../components/AppText'; 
 import mp1 from '../../../assets/images/mp1.jpg';
 import { PastTabContent } from './homeArchive/PastTabContent';
-import { ProfileModalSheet } from '../onboarding/profile/ProfileDashboardContent'; 
+
+// Import the three isolated profile sheets securely
+import { GuestProfileModalSheet } from '../onboarding/profile/GuestProfile';
+import { LoggedInProfileModalSheet, EphemeralToastBanner } from '../onboarding/profile/LoggedInProfile';
 
 const TABS = ['Past', 'Related', 'Saved', 'Search'];
 
@@ -60,13 +64,30 @@ export default function MachairaHome({
   profileVisible, 
   setProfileVisible,
   onNavigateToMenuOption,
-  onLogout // <-- 1. ADDED THIS PROP ACCEPTER
+  onLogout,
+  onTriggerLogin,
+  onDeleteAccount
 }) {
   const [activeTab, setActiveTab] = useState('Past');
+  const [toastVisible, setToastVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const isGuest = !user;
-  const userDisplayName = user?.name || 'Guest';
-  const userAvatarUrl = user?.photo;
+  const isLoggedOut = !!(user && user.isLoggedOut);
+  const isLoggedIn = user && !user.isLoggedOut;
+
+  const greetingText = useMemo(() => {
+    if (isLoggedOut) return 'Sword sheathed, Return soon!';
+    if (isGuest) return 'Shalom, Machaira!';
+    return 'Shalom, Machaira!';
+  }, [isLoggedOut, isGuest]);
+
+  const userDisplayName = useMemo(() => {
+    if (isGuest || isLoggedOut) return 'Guest';
+    return user?.name || 'User Account';
+  }, [isGuest, isLoggedOut, user?.name]);
+
+  const userAvatarUrl = isGuest || isLoggedOut ? null : user?.photo;
 
   const handleProfilePress = useCallback(() => setProfileVisible(true), [setProfileVisible]);
   const handleBibleNavigation = useCallback(() => navigation.navigate('Bible'), [navigation]);
@@ -75,15 +96,39 @@ export default function MachairaHome({
     if (onNavigateToSupport) {
       onNavigateToSupport();
     } else {
-      navigation.navigate('Support'); 
+      navigation.navigate('SupportFeedback'); 
     }
   }, [onNavigateToSupport, navigation]);
+
+  const logoutTimeoutRef = useRef(null);
+
+  const handleLogout = useCallback(() => {
+    setToastVisible(true);
+    if (logoutTimeoutRef.current) {
+      clearTimeout(logoutTimeoutRef.current);
+    }
+    // The real onLogout can trigger auth-state/navigation changes that
+    // unmount this screen. Delay it until the toast has fully played out
+    // (350ms in + 2600ms hold + 250ms out) so it's actually readable.
+    logoutTimeoutRef.current = setTimeout(() => {
+      onLogout?.();
+      logoutTimeoutRef.current = null;
+    }, 3200);
+  }, [onLogout]);
+
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current) {
+        clearTimeout(logoutTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <View style={styles.flexOne}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent]} 
       >
         {/* Profile Header Section */}
         <View style={styles.header}>
@@ -92,25 +137,41 @@ export default function MachairaHome({
             onPress={handleProfilePress} 
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            {userAvatarUrl ? (
-              <Image source={{ uri: userAvatarUrl }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <User color="#ea580c" size={18} strokeWidth={2.5} />
-              </View>
-            )}
+            <View style={styles.avatarAnchorContainer}>
+              {userAvatarUrl ? (
+                <Image source={{ uri: userAvatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={[styles.avatarFallback, isLoggedOut && styles.avatarLoggedOutFallback]}>
+                  <User color={isLoggedOut ? "#ef4444" : "#ef4444"} size={18} strokeWidth={2.5} />
+                </View>
+              )}
+              {isLoggedOut && (
+                <View style={styles.lockBadgeFrame}>
+                  <Lock color="#ffffff" size={8} strokeWidth={3} />
+                </View>
+              )}
+            </View>
+
             <View style={styles.flexOne}>
-              <AppText type="regular" style={styles.greetingMicro}>
-                {isGuest ? 'Welcome to Machaira' : 'Welcome back'}
+              <AppText 
+                type={isLoggedOut ? "bold" : "regular"}
+                style={[styles.greetingMicro, isLoggedOut && styles.greetingLoggedOutMicro]}
+                numberOfLines={1}
+              >
+                {greetingText}
               </AppText>
-              <AppText type="bold" numberOfLines={1} style={styles.profileName}>
+              <AppText 
+                type="bold" 
+                numberOfLines={1} 
+                style={[styles.profileName, isLoggedOut && styles.profileLoggedOutName]}
+              >
                 {userDisplayName}
               </AppText>
             </View>
           </Pressable>
+
           <Pressable style={styles.subscribeBtn}>
-            <Bell color="#475569" size={13} strokeWidth={2.5} style={styles.bellIconSpacing} />
-            <AppText type="bold" style={styles.subscribeText}>Subscribe</AppText>
+            <Bell color="#475569" size={21} strokeWidth={2.5} style={styles.bellIconSpacing} />
           </Pressable>
         </View>
 
@@ -165,14 +226,36 @@ export default function MachairaHome({
         )}
       </ScrollView>
 
-      {/* Profile Modal Sheet Overlay */}
-      <ProfileModalSheet 
-        visible={profileVisible} 
-        onClose={() => setProfileVisible(false)} 
-        user={user} 
-        onLogout={onLogout} // <-- 2. ROUTED THE PROP HERE
-        onNavigateToSupport={handleSupportNavigation}
-        onNavigateToMenuOption={onNavigateToMenuOption}
+      {/* ==========================================
+          DYNAMIC OVERLAY SHEETS DISPATCHER
+         ========================================== */}
+      {isGuest ? (
+        <GuestProfileModalSheet
+          visible={profileVisible}
+          onClose={() => setProfileVisible(false)}
+          onTriggerLogin={onTriggerLogin}
+          onNavigateToSupport={handleSupportNavigation}
+          onNavigateToMenuOption={onNavigateToMenuOption}
+        />
+      ) : (
+        <LoggedInProfileModalSheet
+          visible={profileVisible}
+          onClose={() => setProfileVisible(false)}
+          user={user}
+          isLoggedOut={isLoggedOut}
+          onLogin={onTriggerLogin}
+          onLogout={handleLogout}
+          onChangeAccount={() => onNavigateToMenuOption?.('change_account')}
+          onDeleteAccount={onDeleteAccount}
+          onNavigateToSupport={handleSupportNavigation}
+          onNavigateToMenuOption={onNavigateToMenuOption}
+        />
+      )}
+
+      <EphemeralToastBanner
+        message="You have successfully logged out of your account."
+        visible={toastVisible}
+        onDismiss={() => setToastVisible(false)}
       />
     </View>
   );
@@ -184,37 +267,22 @@ export default function MachairaHome({
 const styles = StyleSheet.create({
   flexOne: { flex: 1, backgroundColor: '#fafaf9' },
   rowCenter: { flexDirection: 'row', alignItems: 'center' },
-  actionRow: { width: '100%' }, 
+  actionRow: { flexDirection: 'row', width: '100%' }, 
   scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingVertical: 16, 
-    backgroundColor: '#fafaf9', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#f1f5f9', 
-    marginBottom: 20 
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, backgroundColor: '#fafaf9', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 20 },
   profileTarget: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 16 },
-  avatarImage: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#e2e8f0' },
-  avatarFallback: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fed7aa' },
-  greetingMicro: { fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6 },
+  avatarAnchorContainer: { position: 'relative', width: 38, height: 38 },
+  avatarImage: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffffff' },
+  avatarFallback: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fed7aa' },
+  avatarLoggedOutFallback: { backgroundColor: '#ffffff', borderColor: '#ef4444' },
+  lockBadgeFrame: { position: 'absolute', bottom: -1, right: -1, backgroundColor: '#ef4444', width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#fafaf9' },
+  greetingMicro: { fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6 },
+  greetingLoggedOutMicro: { color: '#ef4444', fontStyle: 'bold', textTransform: 'none' },
   profileName: { fontSize: 15, color: '#0f172a', marginTop: -1 },
+  profileLoggedOutName: { color: '#0f172a' },
   subscribeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   subscribeText: { color: '#475569', fontSize: 11, letterSpacing: 0.3 },
-  heroWrapper: { 
-    backgroundColor: '#ffffff', 
-    borderRadius: 16, 
-    overflow: 'hidden', 
-    marginBottom: 28, 
-    borderWidth: 1, 
-    borderColor: '#f1f5f9', 
-    ...Platform.select({ 
-      ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16 }, 
-      android: { elevation: 4 } 
-    }) 
-  },
+  heroWrapper: { backgroundColor: '#ffffff', borderRadius: 16, overflow: 'hidden', marginBottom: 28, borderWidth: 1, borderColor: '#f1f5f9', ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16 }, android: { elevation: 4 } }) },
   heroImage: { width: '100%', height: 195, backgroundColor: '#e2e8f0' },
   heroPane: { padding: 20, alignItems: 'flex-start' },
   metaText: { fontSize: 13, color: '#475569' },
@@ -234,7 +302,6 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: '#0f172a' },
   fallbackContainer: { backgroundColor: '#ffffff', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', marginTop: 10 },
   fallbackText: { color: '#64748b', fontSize: 14, marginTop: 8 },
-  
   bellIconSpacing: { marginRight: 5 },
   calendarIconSpacing: { marginRight: 6 },
   playIconSpacing: { marginRight: 8 },
