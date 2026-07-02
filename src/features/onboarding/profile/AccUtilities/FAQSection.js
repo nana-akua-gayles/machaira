@@ -57,23 +57,14 @@ export default function FAQSection() {
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 12, paddingHorizontal: 4, marginBottom: 24 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 15, color: '#3b0764', letterSpacing: -0.2 },
-  gridContainer: { flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
-  faqCard: { 
-    backgroundColor: '#ffffff', 
-    borderRadius: 16, 
-    padding: 16, 
-    borderWidth: 1, 
-    borderColor: '#f3e8ff',
-    ...Platform.select({
-      ios: { shadowColor: '#3b0764', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6 },
-      android: { elevation: 2 }
-    })
-  },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  questionText: { fontSize: 13, color: '#3b0764', flex: 1, lineHeight: 18 },
-  answerWrapper: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f3e8ff' },
-  answerText: { fontSize: 12, color: '#6b21a8', lineHeight: 18 }
+  container: { marginTop: 16, marginBottom: 32 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, paddingHorizontal: 4 },
+  title: { fontSize: 16, color: '#352a48', letterSpacing: -0.3, fontWeight: '700' },
+  gridContainer: { flexWrap: 'wrap', justifyContent: 'space-between', gap: 16 },
+  faqCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04,
+  shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: '#f1f5f9' },
+  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
+  questionText: { fontSize: 14, color: '#352a48', flex: 1, lineHeight: 20, fontWeight: '600' },
+  answerWrapper: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#f8fafc' },
+  answerText: { fontSize: 13, color: '#64748b', lineHeight: 20, fontWeight: '400' }
 });

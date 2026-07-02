@@ -5,19 +5,23 @@ WebBrowser.maybeCompleteAuthSession();
 
 export const executeGoogleSignIn = async () => {
   try {
-    // Step 1: Request an OAuth URL from Supabase for Google
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'machaira://auth-callback', // Match your Supabase dashboard whitelist exactly
+        redirectTo: 'machaira://auth-callback', 
         skipBrowserRedirect: true,
+      
+        queryParams: { prompt: 'select_account' },
       },
     });
 
     if (error) throw error;
 
-    // Step 2: Open Safari and listen for the returning deep link
-    const result = await WebBrowser.openAuthSessionAsync(data.url, 'machaira://');
+    console.log('[GoogleAuth debug] authorize URL:', data.url);
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, 'machaira://', {
+      preferEphemeralSession: true,
+    });
     
     // Step 3: Parse the incoming tokens out of the landing URL
     if (result.type === 'success' && result.url) {

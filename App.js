@@ -7,7 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack'; 
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import { Home, Book, ShoppingBag, FolderHeart } from 'lucide-react-native';
+import { Home, Book, ShoppingBag, FolderHeart, LayoutGrid } from 'lucide-react-native';
 import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_900Black} from '@expo-google-fonts/montserrat';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -70,7 +70,7 @@ const MemoizedFavoriteBooks = React.memo(({ navigation }) => (
 
 const MemoizedHomeScreen = React.memo(({ 
   navigation, route, user, profileVisible, setProfileVisible, 
-  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onResumeSession, onChangeAccount, onDeleteAccount 
+  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount 
 }) => (
   <View style={[styles.flexOne, { paddingTop: useSafeAreaInsets().top }]}>
     <HomeScreen 
@@ -83,7 +83,6 @@ const MemoizedHomeScreen = React.memo(({
       onNavigateToMenuOption={onNavigateToMenuOption}
       onLogout={onLogout}
       onTriggerLogin={onTriggerLogin}
-      onResumeSession={onResumeSession}
       onChangeAccount={onChangeAccount}
       onDeleteAccount={onDeleteAccount}
     />
@@ -93,7 +92,7 @@ const MemoizedHomeScreen = React.memo(({
 // ==========================================
 // CORE TAB NAVIGATION COMPONENT
 // ==========================================
-function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onResumeSession, onChangeAccount, onDeleteAccount }) {
+function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount }) {
   const insets = useSafeAreaInsets();
   const [profileVisible, setProfileVisible] = useState(false);
 
@@ -151,7 +150,6 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
             setProfileVisible={setProfileVisible} 
             onLogout={onLogout}
             onTriggerLogin={onTriggerLogin}
-            onResumeSession={onResumeSession}
             onChangeAccount={onChangeAccount}
             onDeleteAccount={onDeleteAccount}
             onNavigateToSupport={handleSupportNavigation} 
@@ -199,13 +197,6 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
           ),
         }} 
       />
-
-      <Tab.Screen 
-        name="Store" 
-        options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(ShoppingBag, focused, color) }}
-      >
-        {() => <CenterScreen title="Store Screen" />}
-      </Tab.Screen>
       
       <Tab.Screen 
         name="Library" 
@@ -213,6 +204,14 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
       >
         {() => <CenterScreen title="Library Screen" />}
       </Tab.Screen>
+
+      <Tab.Screen 
+          name="More" 
+          options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(LayoutGrid, focused, color) }}
+        >
+          {() => <CenterScreen title="More Screen" />}
+        </Tab.Screen>
+
     </Tab.Navigator>
   );
 }
@@ -268,12 +267,7 @@ export default function App() {
   const handleSwitchToNewAccount = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(DISK_USER_CACHE_KEY);
-      // Keep the in-memory user around (marked logged-out) rather than
-      // wiping it to null — OnboardingScreen uses isReturningFromGuest /
-      // savedUserContext to skip its intro slides and go straight to the
-      // accounts/sign-in screen for a recognized user. Clearing the disk
-      // cache still means no session gets silently auto-restored.
-      setAuthenticatedUser(prev => (prev ? { ...prev, isLoggedOut: true } : null));
+      setAuthenticatedUser(null);
       setHasCompletedOnboarding(false);
     } catch (err) {
       console.warn("Failed clearing core layout storage identity:", err);
@@ -301,23 +295,6 @@ export default function App() {
 
   const handleTriggerLogin = useCallback(() => {
     setHasCompletedOnboarding(false);
-  }, []);
-
-  // Resumes a cached, previously-authenticated user who is only *locally*
-  // marked as logged-out (see the SIGNED_OUT branch below). This is what
-  // "Continue as {name}" in the profile action sheet should call: it just
-  // restores local state so the tab navigator stays mounted — it must
-  // never fall back to onTriggerLogin, which unmounts MainTabs and shows
-  // the full Onboarding screen. That flow is reserved for guests with no
-  // cached session at all, or for handleSwitchToNewAccount when someone
-  // explicitly wants to sign in as a different person.
-  const handleResumeSession = useCallback(() => {
-    setAuthenticatedUser(prev => {
-      if (!prev) return prev;
-      const resumedState = { ...prev, isLoggedOut: false };
-      writeProfileDiskCache(resumedState);
-      return resumedState;
-    });
   }, []);
 
   useEffect(() => {
@@ -421,7 +398,6 @@ export default function App() {
                       user={authenticatedUser} 
                       onLogout={handleGlobalLogout} 
                       onTriggerLogin={handleTriggerLogin}
-                      onResumeSession={handleResumeSession}
                       onChangeAccount={handleSwitchToNewAccount}
                       onDeleteAccount={handleAccountDeletion}
                     />
@@ -451,7 +427,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'visible', ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.03, shadowRadius: 10 }, android: { elevation: 8 } }) },
   iconContainer: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
   minimalDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#ef4444', position: 'absolute', bottom: -6 },
-  navButtonAI: { top: -6, justifyContent: 'flex-start', alignItems: 'center' },
+  navButtonAI: { justifyContent: 'flex-start', alignItems: 'center' },
   navButtonAIFocused: { transform: [{ scale: 1.05 }] },
   aiIconAnchor: { width: 64, height: 54, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#ef4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 4 }, android: { elevation: 4 } }) },
   aiIconAnchorFocused: { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#ef4444' },

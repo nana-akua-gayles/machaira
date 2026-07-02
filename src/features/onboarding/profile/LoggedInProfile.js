@@ -8,13 +8,6 @@ import { AppText } from '../../../components/AppText';
 
 const { height, width } = Dimensions.get('window');
 
-// react-native-screens gives each React Navigation screen (e.g. tab screens)
-// its own native view controller on iOS. A plain RN <Modal> rendered inside
-// one of those screens can end up presenting *behind* sibling UI that lives
-// above the screen stack, like a bottom tab bar. FullWindowOverlay forces
-// its children to attach to the real key window instead, so the modal
-// always paints above everything. It's iOS-only, so on other platforms we
-// just render children directly.
 const ModalOverlay = Platform.OS === 'ios' ? FullWindowOverlay : React.Fragment;
 
 const ENGAGEMENT_ITEMS = [

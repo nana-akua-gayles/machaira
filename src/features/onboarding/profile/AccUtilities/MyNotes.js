@@ -50,31 +50,45 @@ export default function MyNotesScreen({ notes = [], onBack, onSaveNote }) {
   };
 
   if (isWorkspaceOpen) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-          <View style={styles.headerBar}>
-            <Pressable style={styles.headerActionCircle} onPress={() => setIsWorkspaceOpen(false)} hitSlop={12}><ArrowLeft color="#0f172a" size={22} strokeWidth={2.2} /></Pressable>
-            <AppText type="bold" style={styles.headerTitle}>{editingNoteId ? 'Edit Note' : 'New Note'}</AppText>
-            <Pressable style={[styles.headerActionCircle, styles.accentSaveButton]} onPress={handleSave} hitSlop={12}><Check color="#ffffff" size={20} strokeWidth={2.5} /></Pressable>
-          </View>
-          <ScrollView style={styles.editorWorkspace} showsVerticalScrollIndicator={false}>
-            <AppText type="semiBold" style={styles.sectionLabel}>TITLE</AppText>
-            <View style={[styles.titleBadgeContainer, { backgroundColor: currentPalette.tagBg || currentPalette.bg, borderColor: currentPalette.tagColor || currentPalette.color }]}>
-              <TextInput style={[styles.titleInputField, { color: currentPalette.tagColor || currentPalette.color }]} placeholder="Give Your Note a Title..." placeholderTextColor="#a1a1aa" value={noteTitle} onChangeText={setNoteTitle} maxLength={60} />
-            </View>
-            <AppText type="semiBold" style={styles.sectionLabel}>CONTENT</AppText>
-            <View style={styles.classyInputCard}>
-              <View style={[styles.premiumAccentIndicator, { backgroundColor: currentPalette.tagColor || currentPalette.color }]} />
-              <View style={styles.inputInnerWorkspace}>
-                <TextInput style={styles.bodyInputField} placeholder="Write your insights here..." placeholderTextColor="#94a3b8" value={noteBody} onChangeText={setNoteBody} multiline textAlignVertical="top" />
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
+  const wordCount = noteBody.trim() ? noteBody.trim().split(/\s+/).length : 0;
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+        <View style={styles.headerBar}>
+          <Pressable style={styles.headerActionCircle} onPress={() => setIsWorkspaceOpen(false)}><ArrowLeft color="#0f172a" size={24} /></Pressable>
+          <Pressable style={[styles.headerActionCircle, styles.accentSaveButton]} onPress={handleSave}><Check color="#ffffff" size={20} /></Pressable>
+        </View>
+
+        <ScrollView style={styles.editorWorkspace} showsVerticalScrollIndicator={false}>
+          <TextInput 
+            style={styles.titleInputField} 
+            placeholder="Title" 
+            placeholderTextColor="#cbd5e1" 
+            value={noteTitle} 
+            onChangeText={setNoteTitle} 
+            maxLength={60} 
+          />
+          
+        <View style={styles.titleDivider} />
+          <TextInput 
+            style={styles.bodyInputField} 
+            placeholder="Start writing your revelation..." 
+            placeholderTextColor="#94a3b8" 
+            value={noteBody} 
+            onChangeText={setNoteBody} 
+            multiline 
+            textAlignVertical="top" 
+          />
+        </ScrollView>
+
+        {/* Floating Word Count Badge */}
+        <View style={styles.wordCountBadge}>
+          <AppText type="semiBold" style={styles.wordCountText}>{wordCount} {wordCount === 1 ? 'WORD' : 'WORDS'}</AppText>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -141,15 +155,13 @@ const styles = StyleSheet.create({
   headerActionCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
   accentPlusButton: { backgroundColor: '#ef4444' },
   accentSaveButton: { backgroundColor: '#10b981' },
-  headerTitle: { fontSize: 20, color: '#0f172a', letterSpacing: -0.3 },
-  editorWorkspace: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#94a3b8', letterSpacing: 0.8, marginBottom: 10, marginTop: 14 },
-  titleBadgeContainer: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, alignSelf: 'flex-start', width: '100%', marginBottom: 8 },
-  titleInputField: { fontSize: 15, fontWeight: '400', padding: 0 },
-  classyInputCard: { backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', overflow: 'hidden', minHeight: 280, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 12 }, android: { elevation: 2 } }) },
-  premiumAccentIndicator: { width: 5 },
-  inputInnerWorkspace: { flex: 1, padding: 16 },
-  bodyInputField: { flex: 1, fontSize: 15, lineHeight: 24, color: '#334155' },
+  headerActionCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+  editorWorkspace: { flex: 1, paddingHorizontal: 32, paddingTop: 10 },
+  titleInputField: { fontSize: 25, fontWeight: '800', color: '#0f172a', marginTop: 20, marginBottom: 7, letterSpacing: -1 },
+  titleDivider: { height: 1, backgroundColor: '#818897', width: '100%'},
+  bodyInputField: { fontSize: 18, lineHeight: 34, color: '#334155', fontFamily: 'Montserrat-Regular', minHeight: 400},
+  wordCountBadge: { position: 'absolute', bottom: 30, right: 32, backgroundColor: '#0f172a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,},
+  wordCountText: { fontSize: 10, color: '#ffffff', letterSpacing: 0.5 },
   emptyCanvasCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, paddingBottom: 60 },
   abstractGraphicContainer: { position: 'relative', marginBottom: 24 },
   outerGlowRing: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#fff5f5', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ffe4e6' },
