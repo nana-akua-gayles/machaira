@@ -1,17 +1,3 @@
-/**
- * Strips all HTML tags and known text artifacts from raw bolls.life verse text.
- *
- * Handles:
- *   - All HTML tags               <b>, </b>, <sup>, <span ...>, etc.
- *   - Footnote / ref markers      [a], [1], [note]
- *   - Strong's number markers     <S>1234</S>, H1234, G1234 inline refs
- *   - Paragraph markers           ¶
- *   - Non-breaking spaces         \u00a0
- *   - Soft hyphens                \u00ad
- *   - Windows-1252 artifacts      \u0080–\u009f (often appear in KJV)
- *   - Curly quotes → straight     " " ' '
- *   - Multiple whitespace         collapsed to single space
- */
 export const cleanVerseText = (rawText) => {
   if (!rawText) return '';
   return rawText
@@ -34,20 +20,12 @@ export const cleanVerseText = (rawText) => {
     .trim();
 };
 
-/**
- * AsyncStorage chapter key — "Genesis_Ch1"
- */
+
 export const getChapterKey = (bookName, chapter) =>
   `${bookName}_Ch${chapter}`;
 
-/**
- * Verse-level key used in savedVerses / verseNotes — "Genesis_Ch1_V3"
- */
 export const getVerseKey = (bookName, chapter, verse) =>
   `${getChapterKey(bookName, chapter)}_V${verse}`;
 
-/**
- * Highlight set key — "Genesis_1_3"
- */
 export const getHighlightKey = (bookName, chapter, verse) =>
   `${bookName}_${chapter}_${verse}`;

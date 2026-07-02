@@ -19,11 +19,11 @@ export const useBibleStorage = () => {
           AsyncStorage.getItem(STORAGE_KEYS.underlines),
           AsyncStorage.getItem(STORAGE_KEYS.fontSize),
         ]);
-        if (storedSaved)       setSavedVerses(JSON.parse(storedSaved));
-        if (storedNotes)       setVerseNotes(JSON.parse(storedNotes));
-        if (storedHighlights)  setHighlightedVerses(new Set(JSON.parse(storedHighlights)));
-        if (storedUnderlines)  setUnderlinedVerses(new Set(JSON.parse(storedUnderlines)));
-        if (storedFont)        setFontSizeScale(Number(storedFont));
+        if (storedSaved)      setSavedVerses(JSON.parse(storedSaved));
+        if (storedNotes)      setVerseNotes(JSON.parse(storedNotes));
+        if (storedHighlights) setHighlightedVerses(new Set(JSON.parse(storedHighlights)));
+        if (storedUnderlines) setUnderlinedVerses(new Set(JSON.parse(storedUnderlines)));
+        if (storedFont)       setFontSizeScale(Number(storedFont));
       } catch (e) { console.error('[useBibleStorage] load failed', e); }
     })();
   }, []);
@@ -61,11 +61,12 @@ export const useBibleStorage = () => {
     await AsyncStorage.setItem(STORAGE_KEYS.verseNotes, JSON.stringify(updated));
   };
 
-  const addHighlight = (highlightKey) => {
+  // Accepts a single key or array of keys for range highlighting
+  const addHighlight = (highlightKeys) => {
+    const keys = Array.isArray(highlightKeys) ? highlightKeys : [highlightKeys];
     setHighlightedVerses((prev) => {
-      if (prev.has(highlightKey)) return prev;
       const next = new Set(prev);
-      next.add(highlightKey);
+      keys.forEach((k) => next.add(k));
       AsyncStorage.setItem(STORAGE_KEYS.highlights, JSON.stringify(Array.from(next)))
         .catch((e) => console.error('[useBibleStorage] highlight persist failed', e));
       return next;
@@ -89,9 +90,19 @@ export const useBibleStorage = () => {
     });
   };
 
+  // Save a range of verses
+  const toggleSaveVerseRange = async (verseKeys, verseDataArray) => {
+    const updated = { ...savedVerses };
+    verseKeys.forEach((key, i) => {
+      if (updated[key]) { delete updated[key]; } else { updated[key] = { ...verseDataArray[i], timestamp: Date.now() }; }
+    });
+    setSavedVerses(updated);
+    await AsyncStorage.setItem(STORAGE_KEYS.savedVerses, JSON.stringify(updated));
+  };
+
   return {
     savedVerses, verseNotes, highlightedVerses, underlinedVerses, fontSizeScale,
-    increaseFontSize, decreaseFontSize, toggleSaveVerse, saveNote, removeNote,
-    addHighlight, removeHighlight, toggleUnderline,
+    increaseFontSize, decreaseFontSize, toggleSaveVerse, toggleSaveVerseRange,
+    saveNote, removeNote, addHighlight, removeHighlight, toggleUnderline,
   };
 };

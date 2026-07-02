@@ -66,10 +66,12 @@ export default function MachairaHome({
   onNavigateToMenuOption,
   onLogout,
   onTriggerLogin,
+  onResumeSession,
+  onChangeAccount,
   onDeleteAccount
 }) {
   const [activeTab, setActiveTab] = useState('Past');
-  const [toastVisible, setToastVisible] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '' });
   const insets = useSafeAreaInsets();
 
   const isGuest = !user;
@@ -103,18 +105,25 @@ export default function MachairaHome({
   const logoutTimeoutRef = useRef(null);
 
   const handleLogout = useCallback(() => {
-    setToastVisible(true);
+    setToast({ visible: true, message: 'You have logged out of your account.' });
     if (logoutTimeoutRef.current) {
       clearTimeout(logoutTimeoutRef.current);
     }
-    // The real onLogout can trigger auth-state/navigation changes that
-    // unmount this screen. Delay it until the toast has fully played out
-    // (350ms in + 2600ms hold + 250ms out) so it's actually readable.
+  
     logoutTimeoutRef.current = setTimeout(() => {
       onLogout?.();
       logoutTimeoutRef.current = null;
     }, 3200);
   }, [onLogout]);
+
+  const handleContinueSession = useCallback(() => {
+    const resumeFn = onResumeSession ?? onTriggerLogin;
+    resumeFn?.();
+    if (onResumeSession) {
+      const firstName = (user?.name || 'friend').split(' ')[0];
+      setToast({ visible: true, message: `Welcome back, ${firstName}!` });
+    }
+  }, [onResumeSession, onTriggerLogin, user]);
 
   useEffect(() => {
     return () => {
@@ -243,9 +252,9 @@ export default function MachairaHome({
           onClose={() => setProfileVisible(false)}
           user={user}
           isLoggedOut={isLoggedOut}
-          onLogin={onTriggerLogin}
+          onLogin={handleContinueSession}
           onLogout={handleLogout}
-          onChangeAccount={() => onNavigateToMenuOption?.('change_account')}
+          onChangeAccount={onChangeAccount}
           onDeleteAccount={onDeleteAccount}
           onNavigateToSupport={handleSupportNavigation}
           onNavigateToMenuOption={onNavigateToMenuOption}
@@ -253,9 +262,9 @@ export default function MachairaHome({
       )}
 
       <EphemeralToastBanner
-        message="You have successfully logged out of your account."
-        visible={toastVisible}
-        onDismiss={() => setToastVisible(false)}
+        message={toast.message}
+        visible={toast.visible}
+        onDismiss={() => setToast(prev => ({ ...prev, visible: false }))}
       />
     </View>
   );

@@ -96,8 +96,6 @@ const BooksView = memo(({
     );
   }
 
-  // ── BOOK LIST — split into OT / NT sections ───
-  // When searching, flatten into one section so results aren't split awkwardly
   const isSearching = searchQuery.trim().length > 0;
 
   const sections = isSearching
@@ -117,7 +115,6 @@ const BooksView = memo(({
 
   return (
     <View style={styles.container}>
-      {/* Search bar */}
       <View style={styles.searchBar}>
         <Search color="#352a48" size={16} />
         <TextInput
@@ -167,10 +164,10 @@ const BooksView = memo(({
                 style={styles.bookCard}
               >
                 <AppText style={styles.bookTitle}>{book.name}</AppText>
-                <AppText style={styles.bookSubtitle}>{book.chapters} Chapters</AppText>
+                <AppText style={styles.bookSubtitle}>{book.chapters} {book.chapters === 1 ? 'Chapter' : 'Chapters'}
+                </AppText>
               </Pressable>
             ))}
-            {/* If odd book at end of section, fill with empty space */}
             {pair.length === 1 && <View style={styles.bookCardPlaceholder} />}
           </View>
         )}

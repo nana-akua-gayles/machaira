@@ -70,7 +70,7 @@ const MemoizedFavoriteBooks = React.memo(({ navigation }) => (
 
 const MemoizedHomeScreen = React.memo(({ 
   navigation, route, user, profileVisible, setProfileVisible, 
-  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount 
+  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onResumeSession, onChangeAccount, onDeleteAccount 
 }) => (
   <View style={[styles.flexOne, { paddingTop: useSafeAreaInsets().top }]}>
     <HomeScreen 
@@ -83,6 +83,7 @@ const MemoizedHomeScreen = React.memo(({
       onNavigateToMenuOption={onNavigateToMenuOption}
       onLogout={onLogout}
       onTriggerLogin={onTriggerLogin}
+      onResumeSession={onResumeSession}
       onChangeAccount={onChangeAccount}
       onDeleteAccount={onDeleteAccount}
     />
@@ -92,7 +93,7 @@ const MemoizedHomeScreen = React.memo(({
 // ==========================================
 // CORE TAB NAVIGATION COMPONENT
 // ==========================================
-function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount }) {
+function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onResumeSession, onChangeAccount, onDeleteAccount }) {
   const insets = useSafeAreaInsets();
   const [profileVisible, setProfileVisible] = useState(false);
 
@@ -150,6 +151,7 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
             setProfileVisible={setProfileVisible} 
             onLogout={onLogout}
             onTriggerLogin={onTriggerLogin}
+            onResumeSession={onResumeSession}
             onChangeAccount={onChangeAccount}
             onDeleteAccount={onDeleteAccount}
             onNavigateToSupport={handleSupportNavigation} 
@@ -266,7 +268,12 @@ export default function App() {
   const handleSwitchToNewAccount = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(DISK_USER_CACHE_KEY);
-      setAuthenticatedUser(null);
+      // Keep the in-memory user around (marked logged-out) rather than
+      // wiping it to null — OnboardingScreen uses isReturningFromGuest /
+      // savedUserContext to skip its intro slides and go straight to the
+      // accounts/sign-in screen for a recognized user. Clearing the disk
+      // cache still means no session gets silently auto-restored.
+      setAuthenticatedUser(prev => (prev ? { ...prev, isLoggedOut: true } : null));
       setHasCompletedOnboarding(false);
     } catch (err) {
       console.warn("Failed clearing core layout storage identity:", err);
@@ -294,6 +301,23 @@ export default function App() {
 
   const handleTriggerLogin = useCallback(() => {
     setHasCompletedOnboarding(false);
+  }, []);
+
+  // Resumes a cached, previously-authenticated user who is only *locally*
+  // marked as logged-out (see the SIGNED_OUT branch below). This is what
+  // "Continue as {name}" in the profile action sheet should call: it just
+  // restores local state so the tab navigator stays mounted — it must
+  // never fall back to onTriggerLogin, which unmounts MainTabs and shows
+  // the full Onboarding screen. That flow is reserved for guests with no
+  // cached session at all, or for handleSwitchToNewAccount when someone
+  // explicitly wants to sign in as a different person.
+  const handleResumeSession = useCallback(() => {
+    setAuthenticatedUser(prev => {
+      if (!prev) return prev;
+      const resumedState = { ...prev, isLoggedOut: false };
+      writeProfileDiskCache(resumedState);
+      return resumedState;
+    });
   }, []);
 
   useEffect(() => {
@@ -397,6 +421,7 @@ export default function App() {
                       user={authenticatedUser} 
                       onLogout={handleGlobalLogout} 
                       onTriggerLogin={handleTriggerLogin}
+                      onResumeSession={handleResumeSession}
                       onChangeAccount={handleSwitchToNewAccount}
                       onDeleteAccount={handleAccountDeletion}
                     />

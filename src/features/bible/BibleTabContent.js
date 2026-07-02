@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Pressable, Share } from 'react-native';
 import { AppText } from '../../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +26,9 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
   const [selectedChapterForVerses, setSelectedChapterForVerses] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVerse, setSelectedVerse] = useState(null);
+  const [selectedVerseEnd, setSelectedVerseEnd] = useState(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [navHighlightKey, setNavHighlightKey] = useState(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -34,10 +36,12 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
   const [pickerStep, setPickerStep] = useState('chapters');
   const [tempSelectedChapter, setTempSelectedChapter] = useState(null);
 
+  const pendingNavHighlightRef = useRef(null);
+  const verseLayoutsRef = useRef({});  // y positions keyed by verse number
+  const dragStartVerseRef = useRef(null);
+
   const storage = useBibleStorage();
-
   const { verses, loading, error, wizardVerses, wizardVersesLoading, fetchScripture, fetchWizardChapterVerseCount, resetWizardVerses } = useBibleData(activeVersion);
-
   const { scrollRef, versePositionsRef, pendingScrollVerseRef, lastReadVerseRef, handleVerseLayout, scrollToVerseIfReady, handleScrollPositionChange } = useVerseScroll(setNavHighlightKey);
 
   const scrollToTop = useCallback(() => {
@@ -58,31 +62,76 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
     fetchScripture({
       bookId: activeBook.id, chapter: activeChapter, bookName: activeBook.name,
       versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop,
+      onFetchComplete: () => {
+        if (pendingNavHighlightRef.current) {
+          setNavHighlightKey(pendingNavHighlightRef.current);
+          pendingNavHighlightRef.current = null;
+        }
+      },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, activeBook.id, activeBook.name, activeChapter, activeVersion, fetchScripture, clearNavHighlight, scrollToTop]);
 
+  // eslint-disable-next-line no-unused-vars
   const chapterKey = getChapterKey(activeBook.name, activeChapter);
-
-  const filteredBooks = Array.isArray(BIBLE_BOOKS)
-    ? BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
-
+  const filteredBooks = Array.isArray(BIBLE_BOOKS) ? BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
   const dynamicLineHeight = storage.fontSizeScale * 1.45;
   const dynamicVerseSpacing = storage.fontSizeScale * 0.35;
   const activeBookFull = BIBLE_BOOKS.find((b) => b.id === activeBook.id) ?? { ...activeBook, chapters: 50 };
   const isInsideSelectionWizard = activeTab === 'books' && selectedBookForChapters !== null;
   const floatingNavBottom = tabBarHeight + 12;
 
+  // ── Range helpers ─────────────────────────────
+  const getRangeVerses = useCallback(() => {
+    if (!selectedVerse) return [];
+    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    return verses.filter((v) => v.verse >= start && v.verse <= end);
+  }, [selectedVerse, selectedVerseEnd, verses]);
+
+  const getRangeText = useCallback(() => {
+    return getRangeVerses().map((v) => `${v.verse}. ${cleanVerseText(v.text)}`).join('\n');
+  }, [getRangeVerses]);
+
+  const isVerseInRange = (verseNum) => {
+    if (!selectedVerse) return false;
+    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    return verseNum >= start && verseNum <= end;
+  };
+
+  // ── Drag detection ────────────────────────────
+  const getVerseAtY = useCallback((absoluteY) => {
+    const positions = versePositionsRef.current;
+    const scrollY = scrollRef.current?._lastScrollY ?? 0;
+    const relativeY = absoluteY + scrollY;
+    let closest = null;
+    let closestDist = Infinity;
+    Object.entries(positions).forEach(([verseNum, y]) => {
+      const dist = Math.abs(relativeY - y);
+      if (dist < closestDist) { closestDist = dist; closest = Number(verseNum); }
+    });
+    return closest;
+  }, [versePositionsRef, scrollRef]);
+
+  const handleVerseContainerTouch = useCallback((e) => {
+    if (!isDragging) return;
+    const absoluteY = e.nativeEvent.pageY;
+    const verse = getVerseAtY(absoluteY);
+    if (verse !== null) setSelectedVerseEnd(verse);
+  }, [isDragging, getVerseAtY]);
+
+  // ── Helpers ───────────────────────────────────
   const resetSelectionWizard = useCallback(() => {
     setSelectedBookForChapters(null); setSelectedChapterForVerses(null); resetWizardVerses();
   }, [resetWizardVerses]);
 
   const closeSheet = () => { setIsSheetOpen(false); setIsEditingNote(false); };
-  const clearSelection = () => { setSelectedVerse(null); closeSheet(); };
 
-  const getSelectedVerseTextString = () => {
-    const found = verses.find((v) => v.verse === selectedVerse);
-    return found ? cleanVerseText(found.text) : '';
+  const clearSelection = () => {
+    setSelectedVerse(null); setSelectedVerseEnd(null);
+    setIsDragging(false); dragStartVerseRef.current = null;
+    closeSheet();
   };
 
   const getCurrentBookChapters = useCallback((bookId) => {
@@ -119,49 +168,72 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
     }
   };
 
-  const handleVerseTap = () => {
-  if (isSheetOpen) { closeSheet(); return; }
-  if (navHighlightKey !== null) { setNavHighlightKey(null); return; }
-};
+  const handleVerseTap = (verseStringKey) => {
+    if (isSheetOpen) { closeSheet(); return; }
+    if (navHighlightKey === verseStringKey) { setNavHighlightKey(null); return; }
+  };
 
-  // Long press — select verse AND open sheet
+  // Long press — start drag selection
   const handleVerseLongPress = (verseNum) => {
     setIsEditingNote(false);
     if (selectedVerse === verseNum && isSheetOpen) { clearSelection(); return; }
     setNavHighlightKey(null);
     setSelectedVerse(verseNum);
-    setIsSheetOpen(true);
+    setSelectedVerseEnd(verseNum);
+    setIsDragging(true);
+    dragStartVerseRef.current = verseNum;
     const key = getVerseKey(activeBook.name, activeChapter, verseNum);
     setNoteText(storage.verseNotes[key]?.note ?? '');
   };
 
+  // Drag end — open sheet
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    setIsSheetOpen(true);
+  }, [isDragging]);
+
+  // ── Action handlers ───────────────────────────
   const handleCopyVerse = async () => {
-    const text = getSelectedVerseTextString();
+    const text = getRangeText();
     if (!text) return;
-    await Clipboard.setStringAsync(`"${text}" — ${activeBook.name} ${activeChapter}:${selectedVerse} (${activeVersion})`);
+    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const ref   = start === end ? `${activeBook.name} ${activeChapter}:${start}` : `${activeBook.name} ${activeChapter}:${start}–${end}`;
+    await Clipboard.setStringAsync(`${text}\n\n— ${ref} (${activeVersion})`);
     clearSelection();
   };
 
   const handleShareVerse = async () => {
-    const text = getSelectedVerseTextString();
+    const text = getRangeText();
     if (!text) return;
-    try { await Share.share({ message: `"${text}"\n\n— ${activeBook.name} ${activeChapter}:${selectedVerse} (${activeVersion})` }); }
+    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
+    const ref   = start === end ? `${activeBook.name} ${activeChapter}:${start}` : `${activeBook.name} ${activeChapter}:${start}–${end}`;
+    try { await Share.share({ message: `${text}\n\n— ${ref} (${activeVersion})` }); }
     catch (e) { console.error(e); }
     clearSelection();
   };
 
   const handleToggleSaveVerse = () => {
-    const key = getVerseKey(activeBook.name, activeChapter, selectedVerse);
-    storage.toggleSaveVerse(key, { book: activeBook.name, chapter: activeChapter, verse: selectedVerse, text: getSelectedVerseTextString(), version: activeVersion });
+    const rangeVerses = getRangeVerses();
+    const keys = rangeVerses.map((v) => getVerseKey(activeBook.name, activeChapter, v.verse));
+    const dataArray = rangeVerses.map((v) => ({
+      book: activeBook.name, chapter: activeChapter, verse: v.verse,
+      text: cleanVerseText(v.text), version: activeVersion,
+    }));
+    storage.toggleSaveVerseRange(keys, dataArray);
     clearSelection();
   };
 
   const handleHighlightVerse = () => {
-    storage.addHighlight(getHighlightKey(activeBook.name, activeChapter, selectedVerse));
+    const keys = getRangeVerses().map((v) => getHighlightKey(activeBook.name, activeChapter, v.verse));
+    storage.addHighlight(keys);
     clearSelection();
   };
 
   const handleSaveNote = () => {
+    // Note applies to the first verse of the range
     const key = getVerseKey(activeBook.name, activeChapter, selectedVerse);
     storage.saveNote(key, { book: activeBook.name, chapter: activeChapter, verse: selectedVerse }, noteText);
     clearSelection();
@@ -171,12 +243,14 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
     setTempSelectedChapter(chapNum); setActiveChapter(chapNum); setPickerStep('verses');
   };
 
-  // Navigate to verse — highlight only, no sheet
   const handlePickerSelectVerse = (verseNum) => {
+    const chap = tempSelectedChapter || activeChapter;
+    pendingNavHighlightRef.current = getHighlightKey(activeBook.name, chap, verseNum);
     setIsPickerOpen(false);
-    setSelectedVerse(verseNum);
+    setSelectedVerse(null);
+    setSelectedVerseEnd(null);
     setIsSheetOpen(false);
-    setNavHighlightKey(getHighlightKey(activeBook.name, tempSelectedChapter || activeChapter, verseNum));
+    pendingScrollVerseRef.current = verseNum;
     scrollToVerseIfReady(verseNum);
   };
 
@@ -185,14 +259,14 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
     fetchWizardChapterVerseCount(selectedBookForChapters.id, chapNum, selectedBookForChapters.name);
   };
 
-  // Navigate to verse — highlight only, no sheet
   const handleBooksSelectVerse = (verseNum) => {
     const book = selectedBookForChapters;
     const chapter = selectedChapterForVerses;
-    setNavHighlightKey(getHighlightKey(book.name, chapter, verseNum));
+    pendingNavHighlightRef.current = getHighlightKey(book.name, chapter, verseNum);
     setActiveBook({ id: book.id, name: book.name, chapters: book.chapters });
     setActiveChapter(chapter);
-    setSelectedVerse(verseNum);
+    setSelectedVerse(null);
+    setSelectedVerseEnd(null);
     setIsSheetOpen(false);
     pendingScrollVerseRef.current = verseNum;
     resetSelectionWizard();
@@ -205,6 +279,9 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
       versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop,
     });
   }, [activeBook.id, activeBook.name, activeChapter, fetchScripture, versePositionsRef, pendingScrollVerseRef, clearNavHighlight, scrollToTop]);
+
+  const rangeStart = selectedVerse && selectedVerseEnd ? Math.min(selectedVerse, selectedVerseEnd) : selectedVerse;
+  const rangeEnd   = selectedVerse && selectedVerseEnd ? Math.max(selectedVerse, selectedVerseEnd) : selectedVerse;
 
   return (
     <SafeAreaView style={styles.appContainer} edges={['top', 'left', 'right']}>
@@ -284,28 +361,38 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
                 contentContainerStyle={styles.textCanvasLayoutPadding}
                 onScroll={(e) => handleScrollPositionChange(e.nativeEvent.contentOffset.y)}
                 scrollEventThrottle={100}
+                scrollEnabled={!isDragging}
               >
-                <View style={styles.editorialParagraphBlock}>
+                {/* Touch-tracking container for drag detection */}
+                <View
+                  style={styles.editorialParagraphBlock}
+                  onTouchMove={handleVerseContainerTouch}
+                  onTouchEnd={handleDragEnd}
+                >
                   {verses.map((v) => {
                     const verseStringKey = getHighlightKey(activeBook.name, activeChapter, v.verse);
                     const noteKey = getVerseKey(activeBook.name, activeChapter, v.verse);
                     return (
                       <VerseRow
-                          key={v.pk}
-                          v={v}
-                          isSelected={selectedVerse === v.verse}
-                          isNavHighlight={navHighlightKey === verseStringKey}
-                          isHighlighted={storage.highlightedVerses.has(verseStringKey)}
-                          isUnderlined={storage.underlinedVerses.has(noteKey)}
-                          hasNote={!!storage.verseNotes[noteKey]}
-                          isSaved={!!storage.savedVerses[noteKey]}
-                          fontSizeScale={storage.fontSizeScale}
-                          dynamicLineHeight={dynamicLineHeight}
-                          dynamicVerseSpacing={dynamicVerseSpacing}
-                          onPress={() => storage.toggleUnderline(noteKey)}
-                          onLongPress={() => handleVerseLongPress(v.verse)}
-                          onLayout={(e) => handleVerseLayout(v.verse, e.nativeEvent.layout.y)}
-                        />
+                        key={v.pk}
+                        v={v}
+                        isSelected={isVerseInRange(v.verse)}
+                        isNavHighlight={navHighlightKey === verseStringKey}
+                        isHighlighted={storage.highlightedVerses.has(verseStringKey)}
+                        isUnderlined={storage.underlinedVerses.has(noteKey)}
+                        hasNote={!!storage.verseNotes[noteKey]}
+                        isSaved={!!storage.savedVerses[noteKey]}
+                        fontSizeScale={storage.fontSizeScale}
+                        dynamicLineHeight={dynamicLineHeight}
+                        dynamicVerseSpacing={dynamicVerseSpacing}
+                        onPress={() => {
+                          if (navHighlightKey === verseStringKey) { setNavHighlightKey(null); return; }
+                          if (isSheetOpen) { closeSheet(); return; }
+                          storage.toggleUnderline(noteKey);
+                        }}
+                        onLongPress={() => handleVerseLongPress(v.verse)}
+                        onLayout={(e) => handleVerseLayout(v.verse, e.nativeEvent.layout.y)}
+                      />
                     );
                   })}
                 </View>
@@ -313,12 +400,12 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
               </ScrollView>
             )}
 
-            {/* Action sheet — only when explicitly opened via long press */}
             {selectedVerse && isSheetOpen && !isPickerOpen && (
               <ActionSheet
                 bookName={activeBook.name}
                 chapter={activeChapter}
-                verseNum={selectedVerse}
+                verseNum={rangeStart}
+                verseEnd={rangeEnd}
                 isSaved={!!storage.savedVerses[getVerseKey(activeBook.name, activeChapter, selectedVerse)]}
                 isHighlighted={storage.highlightedVerses.has(getHighlightKey(activeBook.name, activeChapter, selectedVerse))}
                 isEditingNote={isEditingNote}

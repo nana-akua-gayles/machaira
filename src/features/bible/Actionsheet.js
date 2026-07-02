@@ -4,55 +4,57 @@ import { AppText } from '../../components/AppText';
 import { Copy, Share2, Bookmark, FileText, X } from 'lucide-react-native';
 
 const ActionSheet = ({
-  bookName, chapter, verseNum, isSaved, isHighlighted, isEditingNote, noteText,
+  bookName, chapter, verseNum, verseEnd, isSaved, isHighlighted, isEditingNote, noteText,
   onNoteChange, onClose, onCopy, onShare, onToggleSave, onHighlight, onOpenNote, onSaveNote, onCancelNote,
   bottomOffset = 90,
-}) => (
-  <View style={[styles.actionSheetContainer, { bottom: bottomOffset }]}>
-    <View style={styles.actionSheetHeader}>
-      <AppText style={styles.actionSheetTitle}>{bookName} {chapter}:{verseNum}</AppText>
-      <Pressable onPress={onClose} hitSlop={8}><X color="#352a48" size={20} /></Pressable>
-    </View>
+}) => {
+  const isRange = verseEnd && verseEnd !== verseNum;
+  const title = isRange ? `${bookName} ${chapter}:${verseNum}–${verseEnd}` : `${bookName} ${chapter}:${verseNum}`;
 
-    {!isEditingNote ? (
-      <View style={styles.actionButtonsRow}>
-        <Pressable onPress={onCopy} style={styles.actionToolButton}>
-          <Copy color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Copy</AppText>
-        </Pressable>
-        <Pressable onPress={onShare} style={styles.actionToolButton}>
-          <Share2 color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Share</AppText>
-        </Pressable>
-        <Pressable onPress={onToggleSave} style={styles.actionToolButton}>
-          <Bookmark color={isSaved ? '#ef4444' : '#352a48'} fill={isSaved ? '#ef4444' : 'transparent'} size={20} />
-          <AppText style={styles.actionToolLabel}>{isSaved ? 'Saved' : 'Save'}</AppText>
-        </Pressable>
-        <Pressable onPress={onHighlight} style={styles.actionToolButton}>
-          <Bookmark color={isHighlighted ? '#f59e0b' : '#352a48'} fill={isHighlighted ? '#f59e0b' : 'transparent'} size={20} />
-          <AppText style={styles.actionToolLabel}>Highlight</AppText>
-        </Pressable>
-        <Pressable onPress={onOpenNote} style={styles.actionToolButton}>
-          <FileText color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Note</AppText>
-        </Pressable>
+  return (
+    <View style={[styles.actionSheetContainer, { bottom: bottomOffset }]}>
+      <View style={styles.actionSheetHeader}>
+        <AppText style={styles.actionSheetTitle}>{title}</AppText>
+        <Pressable onPress={onClose} hitSlop={8}><X color="#352a48" size={20} /></Pressable>
       </View>
-    ) : (
-      <View style={styles.noteEditorWrapper}>
-        <TextInput
-          style={styles.noteInputField}
-          placeholder="Write your thoughts on this verse..."
-          placeholderTextColor="#a1a1aa"
-          multiline
-          value={noteText}
-          onChangeText={onNoteChange}
-          autoFocus
-        />
-        <View style={styles.noteActionButtons}>
-          <Pressable onPress={onCancelNote} style={styles.noteCancelButton}><AppText style={styles.noteCancelText}>Back</AppText></Pressable>
-          <Pressable onPress={onSaveNote} style={styles.noteSaveButton}><AppText style={styles.noteSaveText}>Save Note</AppText></Pressable>
+
+      {!isEditingNote ? (
+        <View style={styles.actionButtonsRow}>
+          <Pressable onPress={onCopy} style={styles.actionToolButton}>
+            <Copy color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Copy</AppText>
+          </Pressable>
+          <Pressable onPress={onShare} style={styles.actionToolButton}>
+            <Share2 color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Share</AppText>
+          </Pressable>
+          <Pressable onPress={onToggleSave} style={styles.actionToolButton}>
+            <Bookmark color={isSaved ? '#ef4444' : '#352a48'} fill={isSaved ? '#ef4444' : 'transparent'} size={20} />
+            <AppText style={styles.actionToolLabel}>{isSaved ? 'Saved' : 'Save'}</AppText>
+          </Pressable>
+          <Pressable onPress={onHighlight} style={styles.actionToolButton}>
+            <Bookmark color={isHighlighted ? '#f59e0b' : '#352a48'} fill={isHighlighted ? '#f59e0b' : 'transparent'} size={20} />
+            <AppText style={styles.actionToolLabel}>Highlight</AppText>
+          </Pressable>
+          <Pressable onPress={onOpenNote} style={styles.actionToolButton}>
+            <FileText color="#352a48" size={20} /><AppText style={styles.actionToolLabel}>Note</AppText>
+          </Pressable>
         </View>
-      </View>
-    )}
-  </View>
-);
+      ) : (
+        <View style={styles.noteEditorWrapper}>
+          <TextInput
+            style={styles.noteInputField}
+            placeholder="Write your thoughts on this verse..."
+            placeholderTextColor="#a1a1aa"
+            multiline value={noteText} onChangeText={onNoteChange} autoFocus
+          />
+          <View style={styles.noteActionButtons}>
+            <Pressable onPress={onCancelNote} style={styles.noteCancelButton}><AppText style={styles.noteCancelText}>Back</AppText></Pressable>
+            <Pressable onPress={onSaveNote} style={styles.noteSaveButton}><AppText style={styles.noteSaveText}>Save Note</AppText></Pressable>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   actionSheetContainer: {

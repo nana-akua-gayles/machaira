@@ -8,22 +8,20 @@ const VerseRow = ({ v, isSelected, isNavHighlight, isHighlighted, isUnderlined, 
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isNavHighlight) {
-      pulseAnim.setValue(0);
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1,   duration: 300, useNativeDriver: false }),
-        Animated.delay(400),
-        Animated.timing(pulseAnim, { toValue: 0.4, duration: 500, useNativeDriver: false }),
-      ]).start();
-    } else {
-      pulseAnim.setValue(0);
-    }
-  }, [isNavHighlight, pulseAnim]);
+  if (isNavHighlight) {
+    pulseAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
+    ]).start();
+  } else {
+    Animated.timing(pulseAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+  }
+}, [isNavHighlight, pulseAnim]);
 
   const animatedBg = pulseAnim.interpolate({
-    inputRange:  [0, 0.4, 1],
-    outputRange: ['rgba(53,42,72,0)', 'rgba(53,42,72,0.06)', 'rgba(53,42,72,0.12)'],
-  });
+  inputRange:  [0, 1],
+  outputRange: ['rgba(53,42,72,0)', 'rgba(53,42,72,0.08)'],
+});
 
   return (
     <Pressable

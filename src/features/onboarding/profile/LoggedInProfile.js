@@ -1,11 +1,21 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Pressable, ScrollView, Image, Modal, Dimensions, FlatList, Animated, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView, Image, Modal, Dimensions, FlatList, Animated, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FullWindowOverlay } from 'react-native-screens';
 import * as SecureStore from 'expo-secure-store';
 import { Flame, Gift, Globe, Notebook, User, MicVocal, Heart, MessageSquareWarning, ChevronRight, LogOut, Trophy, Share2, Bell, UserCheck, BookmarkCheck, X, UserX, Lock } from 'lucide-react-native';
 import { AppText } from '../../../components/AppText';
 
 const { height, width } = Dimensions.get('window');
+
+// react-native-screens gives each React Navigation screen (e.g. tab screens)
+// its own native view controller on iOS. A plain RN <Modal> rendered inside
+// one of those screens can end up presenting *behind* sibling UI that lives
+// above the screen stack, like a bottom tab bar. FullWindowOverlay forces
+// its children to attach to the real key window instead, so the modal
+// always paints above everything. It's iOS-only, so on other platforms we
+// just render children directly.
+const ModalOverlay = Platform.OS === 'ios' ? FullWindowOverlay : React.Fragment;
 
 const ENGAGEMENT_ITEMS = [
   { id: 'readers', label: 'Top Readers', icon: Trophy, color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.06)' },
@@ -36,52 +46,54 @@ const CustomActionSheet = ({ visible, title, description, options = [], onClose,
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={styles.actionSheetOverlayScrim}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.actionSheetSurfaceContainer}>
-          
-          {(avatarUri || title || description) && (
-            <View style={styles.actionSheetHeaderBlock}>
-              {avatarUri && (
-                <View style={styles.actionSheetAvatarRing}>
-                  <Image source={{ uri: avatarUri }} style={styles.actionSheetAvatarImage} />
-                </View>
-              )}
-              {title && <AppText type="black" style={styles.actionSheetTitleText}>{title}</AppText>}
-              {description && <AppText type="regular" style={styles.actionSheetDescText}>{description}</AppText>}
-            </View>
-          )}
+      <ModalOverlay>
+        <View style={styles.actionSheetOverlayScrim}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.actionSheetSurfaceContainer}>
+            
+            {(avatarUri || title || description) && (
+              <View style={styles.actionSheetHeaderBlock}>
+                {avatarUri && (
+                  <View style={styles.actionSheetAvatarRing}>
+                    <Image source={{ uri: avatarUri }} style={styles.actionSheetAvatarImage} />
+                  </View>
+                )}
+                {title && <AppText type="black" style={styles.actionSheetTitleText}>{title}</AppText>}
+                {description && <AppText type="regular" style={styles.actionSheetDescText}>{description}</AppText>}
+              </View>
+            )}
 
-          <View style={styles.actionSheetOptionsGroupStack}>
-  {options.map((opt, idx) => (
-    <Pressable 
-      key={idx} 
-      style={({ pressed }) => [
-        styles.actionSheetButtonRow, 
-        opt.style === 'destructive' && styles.actionSheetDestructiveRow,
-        opt.style === 'cancel' && styles.actionSheetCancelRow,
-        pressed && styles.rowPressedStyle
-      ]} 
-      onPress={() => {
-        onClose();
-        opt.onPress?.();
-      }}
-    >
-      <AppText 
-        type="bold" 
-        style={[
-          styles.actionSheetButtonLabel, 
-          opt.style === 'destructive' && styles.textDestructiveColor,
-          opt.style === 'cancel' && styles.textCancelColor
-        ]}
+            <View style={styles.actionSheetOptionsGroupStack}>
+    {options.map((opt, idx) => (
+      <Pressable 
+        key={idx} 
+        style={({ pressed }) => [
+          styles.actionSheetButtonRow, 
+          opt.style === 'destructive' && styles.actionSheetDestructiveRow,
+          opt.style === 'cancel' && styles.actionSheetCancelRow,
+          pressed && styles.rowPressedStyle
+        ]} 
+        onPress={() => {
+          onClose();
+          opt.onPress?.();
+        }}
       >
-        {opt.text}
-      </AppText>
-    </Pressable>
-  ))}
-</View>
+        <AppText 
+          type="bold" 
+          style={[
+            styles.actionSheetButtonLabel, 
+            opt.style === 'destructive' && styles.textDestructiveColor,
+            opt.style === 'cancel' && styles.textCancelColor
+          ]}
+        >
+          {opt.text}
+        </AppText>
+      </Pressable>
+    ))}
+  </View>
+          </View>
         </View>
-      </View>
+      </ModalOverlay>
     </Modal>
   );
 };
@@ -416,29 +428,31 @@ export const LoggedInProfileModalSheet = ({
   return (
     <>
       <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent>
-        <View style={styles.modalOverlayScrim}>
-          <Pressable style={styles.dismissalAbsoluteBackdrop} onPress={onClose} />
-          <View style={[styles.bottomSheetCardContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            <View style={styles.sheetIndicatorBar} />
-            <View style={styles.sheetHeaderControls}>
-              <AppText type="black" style={styles.sheetTitleLabel}>Account Settings</AppText>
-              <Pressable style={styles.closeCircleWrapper} onPress={onClose}><X color="#9ca3af" size={14} strokeWidth={2.5} /></Pressable>
+        <ModalOverlay>
+          <View style={styles.modalOverlayScrim}>
+            <Pressable style={styles.dismissalAbsoluteBackdrop} onPress={onClose} />
+            <View style={[styles.bottomSheetCardContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+              <View style={styles.sheetIndicatorBar} />
+              <View style={styles.sheetHeaderControls}>
+                <AppText type="black" style={styles.sheetTitleLabel}>Account Settings</AppText>
+                <Pressable style={styles.closeCircleWrapper} onPress={onClose}><X color="#9ca3af" size={14} strokeWidth={2.5} /></Pressable>
+              </View>
+              <FlatList 
+                data={modalListItems} 
+                keyExtractor={(item) => item.id} 
+                renderItem={({ item }) => <NavMenuOption {...item} onPress={() => handleItemPress(item.id)} style={styles.modalRowVerticalSpacer} />}
+                contentContainerStyle={styles.flatListInnerScrollContentStyle}
+                ListHeaderComponent={() => (
+                  <View style={styles.headerContainerBlockStack}>
+                    <View style={styles.modalInnerHeaderWrapper}><ProfileCard user={user} isLoggedOut={isLoggedOut} onProfilePress={handleProfilePress} /></View>
+                    {!isLoggedOut && <MetricMatrix />}
+                    <View style={styles.groupHeaderLabelWrapper}><AppText type="bold" style={styles.groupSectionHeaderText}>Account Utilities</AppText></View>
+                  </View>
+                )}
+              />
             </View>
-            <FlatList 
-              data={modalListItems} 
-              keyExtractor={(item) => item.id} 
-              renderItem={({ item }) => <NavMenuOption {...item} onPress={() => handleItemPress(item.id)} style={styles.modalRowVerticalSpacer} />}
-              contentContainerStyle={styles.flatListInnerScrollContentStyle}
-              ListHeaderComponent={() => (
-                <View style={styles.headerContainerBlockStack}>
-                  <View style={styles.modalInnerHeaderWrapper}><ProfileCard user={user} isLoggedOut={isLoggedOut} onProfilePress={handleProfilePress} /></View>
-                  {!isLoggedOut && <MetricMatrix />}
-                  <View style={styles.groupHeaderLabelWrapper}><AppText type="bold" style={styles.groupSectionHeaderText}>Account Utilities</AppText></View>
-                </View>
-              )}
-            />
           </View>
-        </View>
+        </ModalOverlay>
       </Modal>
 
       <CustomActionSheet 
