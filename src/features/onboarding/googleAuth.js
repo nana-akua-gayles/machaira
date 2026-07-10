@@ -1,61 +1,58 @@
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../config/supabaseClient';
 
-WebBrowser.maybeCompleteAuthSession();
+const redirectTo = 'machaira://';
 
-export const executeGoogleSignIn = async () => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'machaira://auth-callback', 
-        skipBrowserRedirect: true,
-      
-        queryParams: { prompt: 'select_account' },
-      },
-    });
+  export const executeGoogleSignIn = async ({ forceAccountPicker = false } = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          ...(forceAccountPicker && {
+            queryParams: { prompt: 'select_account' },
+          }),
+        },
+      });
 
-    if (error) throw error;
-
-    console.log('[GoogleAuth debug] authorize URL:', data.url);
-
-    const result = await WebBrowser.openAuthSessionAsync(data.url, 'machaira://', {
-      preferEphemeralSession: true,
-    });
-    
-    // Step 3: Parse the incoming tokens out of the landing URL
-    if (result.type === 'success' && result.url) {
-      const urldecoded = decodeURIComponent(result.url);
-      
-      // Extract access_token and refresh_token from the hash fragment (#)
-      const params = new URLSearchParams(urldecoded.split('#')[1]);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (accessToken && refreshToken) {
-        // Step 4: Explicitly hand the tokens over to your Supabase client
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (sessionError) throw sessionError;
-
-        const user = sessionData?.user;
-        return {
-          success: true,
-          data: {
-            id: user?.id,
-            email: user?.email,
-            name: user?.user_metadata?.full_name || user?.user_metadata?.name,
-            photo: user?.user_metadata?.avatar_url,
-          },
-        };
-      }
+    if (error) {
+      return { success: false, error: error.message };
     }
 
-    return { success: false, error: 'Sign-in sequence canceled or tokens missing.' };
-  } catch (error) {
-    return { success: false, error: error.message || 'Google Auth failed' };
+    if (!data?.url) {
+      return { success: false, error: 'No auth URL returned from Supabase.' };
+    }
+
+    // Open the OAuth URL in an in-app browser session and wait for the redirect
+    const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+    if (authResult.type === 'success' && authResult.url) {
+       const hashIndex = authResult.url.indexOf('#');
+  const paramsString = hashIndex >= 0 ? authResult.url.substring(hashIndex + 1) : '';
+  const params = new URLSearchParams(paramsString);
+  const access_token = params.get('access_token');
+  const refresh_token = params.get('refresh_token');
+
+      if (access_token && refresh_token) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        if (sessionError) {
+          return { success: false, error: sessionError.message };
+        }
+        return { success: true, data: sessionData.user };
+      }
+      return { success: false, error: 'No tokens found in redirect URL.' };
+    }
+
+    if (authResult.type === 'dismiss' || authResult.type === 'cancel') {
+      return { success: false, error: 'Sign-in window dismissed by user.' };
+    }
+
+    return { success: false, error: 'Google sign-in did not complete.' };
+  } catch (err) {
+    return { success: false, error: err.message || 'Unexpected error during Google sign-in.' };
   }
 };

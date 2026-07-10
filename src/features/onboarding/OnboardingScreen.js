@@ -1,21 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  Pressable,
-  StatusBar,
-  Image,
-  Easing,
-  Alert,
-  ActivityIndicator,
-  useWindowDimensions, 
-  TextInput,
-  Keyboard,
-  Platform,
-  LayoutAnimation,
-  Modal,
-  TouchableWithoutFeedback
+import { View, StyleSheet, Animated, Pressable, StatusBar, Image, Easing, Alert, 
+  ActivityIndicator, useWindowDimensions,  TextInput, Keyboard, Platform, LayoutAnimation, Modal, TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, Mail, UserPlus, Lock, ArrowRight, X } from 'lucide-react-native';
@@ -234,9 +219,11 @@ export const OnboardingScreen = ({ onExploreAsGuest, onAuthSuccess, isReturningF
 
           <Animated.View style={[styles.contentDynamicBody, { opacity: contentFade }]}>
             <View style={styles.textGroupingArea}>
-              <AppText type="black" style={styles.slideMainHeading}>{ONBOARDING_STEPS[currentStep].title}</AppText>
+              <AppText type="black" style={styles.slideMainHeading}>
+                {ONBOARDING_STEPS[currentStep]?.title}
+              </AppText>
               <AppText type="regular" style={[styles.slideParagraphSub, { maxWidth: width * 0.85 }]}>
-                {ONBOARDING_STEPS[currentStep].subtitle}
+                {ONBOARDING_STEPS[currentStep]?.subtitle}
               </AppText>
             </View>
 

@@ -143,14 +143,9 @@ export const useBibleData = (activeVersion) => {
   };
 };
 
-// ── Internal helper class ─────────────────────────────────────────────────────
-/**
- * A special "error" used to pass fallback verse data up through the catch
- * chain without losing the recovered content. Not a real error — just a
- * clean way to signal "network failed but here's KJV anyway."
- */
+
 class OfflineFallbackResult {
   constructor(verses) {
-    this.verses = verses;
+    this.verses = verses || [];
   }
 }

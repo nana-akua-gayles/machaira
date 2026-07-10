@@ -1,3 +1,4 @@
+import 'react-native-url-polyfill/auto';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert 
@@ -22,8 +23,13 @@ import MyNotesTabContent from './src/features/onboarding/profile/AccUtilities/My
 import { Testimony } from './src/features/onboarding/profile/AccUtilities/Testimony'; 
 import { FavoriteBooksScreen } from './src/features/onboarding/profile/AccUtilities/FavoriteBooks'; 
 import machairabot from './assets/images/machairabot.png';
+import * as Linking from 'expo-linking';
+import { executeGoogleSignIn } from './src/features/onboarding/googleAuth';
+import * as WebBrowser from 'expo-web-browser'; 
+
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+WebBrowser.maybeCompleteAuthSession(); 
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -218,6 +224,15 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
 
 const MemoizedBaseTabNavigator = React.memo(BaseTabNavigator);
 
+const linking = {
+  prefixes: ['machaira://', Linking.createURL('/')],
+  config: {
+    screens: {
+      MainTabs: 'auth-callback', 
+    },
+  },
+};
+
 // ==========================================
 // MASTER APPLICATION CONTAINER (ROOT)
 // ==========================================
@@ -255,24 +270,19 @@ export default function App() {
     writeProfileDiskCache(profileModel);
   }, []);
 
-  const handleGlobalLogout = useCallback(async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (e) {
-      console.warn("Error signing out from Supabase layer:", e);
-    }
-  }, []);
+  const handleGlobalLogout = useCallback(() => {
+  // Purely a UI-level "logged out" flag. The real Supabase session
+  // stays alive in the background (Supabase keeps it fresh via
+  // autoRefreshToken), so "Continue as X" can resume instantly.
+  setAuthenticatedUser(prev => {
+    if (!prev) return null;
+    const closedState = { ...prev, isLoggedOut: true };
+    writeProfileDiskCache(closedState);
+    return closedState;
+  });
+}, []);
 
-  const handleSwitchToNewAccount = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(DISK_USER_CACHE_KEY);
-      setAuthenticatedUser(null);
-      setHasCompletedOnboarding(false);
-    } catch (err) {
-      console.warn("Failed clearing core layout storage identity:", err);
-    }
-  }, []);
+
 
   const handleAccountDeletion = useCallback(async () => {
     try {
@@ -293,9 +303,45 @@ export default function App() {
     }
   }, [authenticatedUser, handleGlobalLogout]);
 
-  const handleTriggerLogin = useCallback(() => {
-    setHasCompletedOnboarding(false);
-  }, []);
+// App.js
+const handleTriggerLogin = useCallback(async () => {
+  try {
+    // Don't touch SecureStore at all — the real Supabase session
+    // was never destroyed (see handleGlobalLogout below), so just
+    // recheck it's still alive and self-refreshed.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      mapSupabaseUserToState(session.user); // flips isLoggedOut back to false, updates cache
+      return { resumed: true };
+    }
+
+    // Only reach here if the session is truly gone (expired/revoked).
+    const result = await executeGoogleSignIn();
+    if (result?.error && result.error !== 'Sign-in window dismissed by user.') {
+      Alert.alert('Authentication Failure', result.error);
+    }
+    return { resumed: false, success: !!result?.success };
+  } catch (e) {
+    console.warn("Error resuming session:", e);
+    return { resumed: false, success: false };
+  }
+}, [mapSupabaseUserToState]);
+
+
+
+  const handleSwitchToNewAccount = useCallback(async () => {
+  try {
+    await supabase.auth.signOut({ scope: 'local' }); // discard current session, they want a different account
+  } catch (e) {
+    console.warn('Error clearing session before account switch:', e);
+  }
+  const result = await executeGoogleSignIn({ forceAccountPicker: true });
+  if (result?.error && result.error !== 'Sign-in window dismissed by user.') {
+    Alert.alert('Authentication Failure', result.error);
+  }
+}, []);
+
+  
 
   useEffect(() => {
     let authSubscription;
@@ -366,6 +412,11 @@ export default function App() {
     }
   }, [mapSupabaseUserToState]);
 
+
+  useEffect(() => {
+      console.log("Current Redirect URL:", Linking.createURL('auth-callback'));
+    }, []);  
+
   if (!appIsReady || !fontsLoaded) {
     return null;
   }
@@ -373,7 +424,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <View style={styles.flexOne} onLayout={onLayoutRootView}>
-        <NavigationContainer>
+        <NavigationContainer linking={linking}>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
           
           <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_bottom' }}>
@@ -383,9 +434,8 @@ export default function App() {
                   <OnboardingScreen 
                     onExploreAsGuest={handleExploreAsGuest} 
                     onAuthSuccess={handleAuthSuccess} 
-                    onEmailAuthPress={() => console.log('Email auth requested...')}
-                    isReturningFromGuest={authenticatedUser?.isLoggedOut ?? false}
-                    savedUserContext={authenticatedUser}
+                    isReturningFromGuest={!!authenticatedUser?.isLoggedOut}
+                    savedUserContext={authenticatedUser || null}
                   />
                 )}
               </Stack.Screen>

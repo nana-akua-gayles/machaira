@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Pressable, Share } from 'react-native';
 import { AppText } from '../../components/AppText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
-import { ChevronLeft, ChevronRight, Bookmark, FileText, Trash2, ChevronDown } from 'lucide-react-native';
-
+import { ChevronLeft, ChevronRight, Bookmark, FileText, Trash2, ChevronDown, Star } from 'lucide-react-native';
 import { POPULAR_TRANSLATIONS, BIBLE_BOOKS } from './Bibledata';
 import { FONT_MIN, FONT_MAX } from './Constants';
 import { cleanVerseText, getChapterKey, getVerseKey, getHighlightKey } from './Utils';
-import { useBibleStorage } from './Usebiblestorage';
+import { Usebiblestorage } from './Usebiblestorage'; 
 import { useBibleData } from './Usebibledata';
 import { useVerseScroll } from './Useversescroll';
 import VerseRow from './Verserow';
@@ -26,318 +25,126 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
   const [selectedChapterForVerses, setSelectedChapterForVerses] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVerse, setSelectedVerse] = useState(null);
-  const [selectedVerseEnd, setSelectedVerseEnd] = useState(null);
+  const [underlinedVerses, setUnderlinedVerses] = useState(new Set());
+  const [highlightedVerses, setHighlightedVerses] = useState(new Set());
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [navHighlightKey, setNavHighlightKey] = useState(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerStep, setPickerStep] = useState('chapters');
   const [tempSelectedChapter, setTempSelectedChapter] = useState(null);
-
+  const [activeHighlights, setActiveHighlights] = useState({});
+  const [selectedVerseEnd, setSelectedVerseEnd] = useState(null);
   const pendingNavHighlightRef = useRef(null);
-  const verseLayoutsRef = useRef({});  // y positions keyed by verse number
-  const dragStartVerseRef = useRef(null);
-
-  const storage = useBibleStorage();
+  const verseLayoutsRef = useRef({});
+  const storage = Usebiblestorage();  
   const { verses, loading, error, wizardVerses, wizardVersesLoading, fetchScripture, fetchWizardChapterVerseCount, resetWizardVerses } = useBibleData(activeVersion);
   const { scrollRef, versePositionsRef, pendingScrollVerseRef, lastReadVerseRef, handleVerseLayout, scrollToVerseIfReady, handleScrollPositionChange } = useVerseScroll(setNavHighlightKey);
-
-  const scrollToTop = useCallback(() => {
-    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
-  }, [scrollRef]);
-
+  const scrollToTop = useCallback(() => { requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false })); }, [scrollRef]);
   const clearNavHighlight = useCallback(() => setNavHighlightKey(null), []);
 
-  useFocusEffect(useCallback(() => {
-    setActiveTab('books');
-    setSelectedBookForChapters(null);
-    setSelectedChapterForVerses(null);
-    setSearchQuery('');
-  }, []));
+  useFocusEffect(useCallback(() => { setActiveTab('books'); setSelectedBookForChapters(null); setSelectedChapterForVerses(null); setSearchQuery(''); }, []));
 
   useEffect(() => {
     if (activeTab !== 'read') return;
-    fetchScripture({
-      bookId: activeBook.id, chapter: activeChapter, bookName: activeBook.name,
-      versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop,
-      onFetchComplete: () => {
-        if (pendingNavHighlightRef.current) {
-          setNavHighlightKey(pendingNavHighlightRef.current);
-          pendingNavHighlightRef.current = null;
-        }
-      },
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeBook.id, activeBook.name, activeChapter, activeVersion, fetchScripture, clearNavHighlight, scrollToTop]);
+    fetchScripture({ bookId: activeBook.id, chapter: activeChapter, bookName: activeBook.name, versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop, onFetchComplete: () => { if (pendingNavHighlightRef.current) { setNavHighlightKey(pendingNavHighlightRef.current); pendingNavHighlightRef.current = null; } }, });
+  }, [activeTab, activeBook.id, activeBook.name, activeChapter, activeVersion, fetchScripture, clearNavHighlight, scrollToTop, versePositionsRef, pendingScrollVerseRef]);
 
-  // eslint-disable-next-line no-unused-vars
-  const chapterKey = getChapterKey(activeBook.name, activeChapter);
-  const filteredBooks = Array.isArray(BIBLE_BOOKS) ? BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
   const dynamicLineHeight = storage.fontSizeScale * 1.45;
   const dynamicVerseSpacing = storage.fontSizeScale * 0.35;
   const activeBookFull = BIBLE_BOOKS.find((b) => b.id === activeBook.id) ?? { ...activeBook, chapters: 50 };
   const isInsideSelectionWizard = activeTab === 'books' && selectedBookForChapters !== null;
   const floatingNavBottom = tabBarHeight + 12;
+  const filteredBooks = Array.isArray(BIBLE_BOOKS) ? BIBLE_BOOKS.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
 
-  // ── Range helpers ─────────────────────────────
-  const getRangeVerses = useCallback(() => {
-    if (!selectedVerse) return [];
-    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    return verses.filter((v) => v.verse >= start && v.verse <= end);
-  }, [selectedVerse, selectedVerseEnd, verses]);
+  const getRangeVerses = useCallback(() => { if (!selectedVerse) return []; const end = selectedVerseEnd || selectedVerse; return verses.filter((v) => v.verse >= selectedVerse && v.verse <= end); }, [selectedVerse, selectedVerseEnd, verses]);
+  const isVerseInRange = useCallback((verseNum) => { if (!selectedVerse) return false; return verseNum === selectedVerse; }, [selectedVerse]);
+  const clearSelection = () => { setSelectedVerse(null); setIsSheetOpen(false); };
+  const getCurrentBookChapters = useCallback((bookId) => { const b = BIBLE_BOOKS.find((b) => b.id === bookId); return b?.chapters ?? 50; }, []);
 
-  const getRangeText = useCallback(() => {
-    return getRangeVerses().map((v) => `${v.verse}. ${cleanVerseText(v.text)}`).join('\n');
-  }, [getRangeVerses]);
+  const handleNextChapter = () => { clearSelection(); setNavHighlightKey(null); const total = getCurrentBookChapters(activeBook.id); if (activeChapter < total) setActiveChapter((prev) => prev + 1); else { const idx = BIBLE_BOOKS.findIndex((b) => b.id === activeBook.id); if (idx !== -1 && idx < BIBLE_BOOKS.length - 1) { const next = BIBLE_BOOKS[idx + 1]; setActiveBook({ id: next.id, name: next.name, chapters: next.chapters }); setActiveChapter(1); } } };
+  const handlePrevChapter = () => { clearSelection(); setNavHighlightKey(null); if (activeChapter > 1) setActiveChapter((prev) => prev - 1); else { const idx = BIBLE_BOOKS.findIndex((b) => b.id === activeBook.id); if (idx > 0) { const prevBook = BIBLE_BOOKS[idx - 1]; setActiveBook({ id: prevBook.id, name: prevBook.name, chapters: prevBook.chapters }); setActiveChapter(prevBook.chapters || 1); } } };
 
-  const isVerseInRange = (verseNum) => {
-    if (!selectedVerse) return false;
-    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    return verseNum >= start && verseNum <= end;
-  };
+  const handleVerseSingleTap = useCallback((verse) => { const noteKey = getVerseKey(activeBook.name, activeChapter, verse.verse); const highlightKey = getHighlightKey(activeBook.name, activeChapter, verse.verse); if (activeHighlights[noteKey]) { setActiveHighlights(prev => { const next = { ...prev }; delete next[noteKey]; return next; }); setNavHighlightKey(null); setSelectedVerse(null); setIsSheetOpen(false); return; } if (navHighlightKey === highlightKey) { setNavHighlightKey(null); setSelectedVerse(null); setIsSheetOpen(false); return; } setUnderlinedVerses(prev => { const next = new Set(prev); next.add(noteKey); return next; }); }, [activeBook.name, activeChapter, activeHighlights, navHighlightKey]);
+  const handleVerseDoubleTap = useCallback((verse) => { const verseKey = getHighlightKey(activeBook.name, activeChapter, verse.verse); setUnderlinedVerses(new Set()); setNavHighlightKey(verseKey); setSelectedVerse(verse.verse); const key = getVerseKey(activeBook.name, activeChapter, verse.verse); setNoteText(storage.verseNotes[key]?.note ?? ''); setIsEditingNote(false); setIsSheetOpen(true); }, [activeBook.name, activeChapter, storage.verseNotes]);
 
-  // ── Drag detection ────────────────────────────
-  const getVerseAtY = useCallback((absoluteY) => {
-    const positions = versePositionsRef.current;
-    const scrollY = scrollRef.current?._lastScrollY ?? 0;
-    const relativeY = absoluteY + scrollY;
-    let closest = null;
-    let closestDist = Infinity;
-    Object.entries(positions).forEach(([verseNum, y]) => {
-      const dist = Math.abs(relativeY - y);
-      if (dist < closestDist) { closestDist = dist; closest = Number(verseNum); }
-    });
-    return closest;
-  }, [versePositionsRef, scrollRef]);
-
-  const handleVerseContainerTouch = useCallback((e) => {
-    if (!isDragging) return;
-    const absoluteY = e.nativeEvent.pageY;
-    const verse = getVerseAtY(absoluteY);
-    if (verse !== null) setSelectedVerseEnd(verse);
-  }, [isDragging, getVerseAtY]);
-
-  // ── Helpers ───────────────────────────────────
-  const resetSelectionWizard = useCallback(() => {
-    setSelectedBookForChapters(null); setSelectedChapterForVerses(null); resetWizardVerses();
-  }, [resetWizardVerses]);
-
-  const closeSheet = () => { setIsSheetOpen(false); setIsEditingNote(false); };
-
-  const clearSelection = () => {
-    setSelectedVerse(null); setSelectedVerseEnd(null);
-    setIsDragging(false); dragStartVerseRef.current = null;
-    closeSheet();
-  };
-
-  const getCurrentBookChapters = useCallback((bookId) => {
-    const b = BIBLE_BOOKS.find((b) => b.id === bookId);
-    return b?.chapters ?? 50;
-  }, []);
-
-  const handleNextChapter = () => {
-    clearSelection(); setNavHighlightKey(null);
-    const total = getCurrentBookChapters(activeBook.id);
-    if (activeChapter < total) {
-      setActiveChapter((prev) => prev + 1);
-    } else {
-      const idx = BIBLE_BOOKS.findIndex((b) => b.id === activeBook.id);
-      if (idx !== -1 && idx < BIBLE_BOOKS.length - 1) {
-        const next = BIBLE_BOOKS[idx + 1];
-        setActiveBook({ id: next.id, name: next.name, chapters: next.chapters });
-        setActiveChapter(1);
-      }
-    }
-  };
-
-  const handlePrevChapter = () => {
-    clearSelection(); setNavHighlightKey(null);
-    if (activeChapter > 1) {
-      setActiveChapter((prev) => prev - 1);
-    } else {
-      const idx = BIBLE_BOOKS.findIndex((b) => b.id === activeBook.id);
-      if (idx > 0) {
-        const prevBook = BIBLE_BOOKS[idx - 1];
-        setActiveBook({ id: prevBook.id, name: prevBook.name, chapters: prevBook.chapters });
-        setActiveChapter(prevBook.chapters || 1);
-      }
-    }
-  };
-
-  const handleVerseTap = (verseStringKey) => {
-    if (isSheetOpen) { closeSheet(); return; }
-    if (navHighlightKey === verseStringKey) { setNavHighlightKey(null); return; }
-  };
-
-  // Long press — start drag selection
-  const handleVerseLongPress = (verseNum) => {
-    setIsEditingNote(false);
-    if (selectedVerse === verseNum && isSheetOpen) { clearSelection(); return; }
-    setNavHighlightKey(null);
-    setSelectedVerse(verseNum);
-    setSelectedVerseEnd(verseNum);
-    setIsDragging(true);
-    dragStartVerseRef.current = verseNum;
-    const key = getVerseKey(activeBook.name, activeChapter, verseNum);
-    setNoteText(storage.verseNotes[key]?.note ?? '');
-  };
-
-  // Drag end — open sheet
-  const handleDragEnd = useCallback(() => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    setIsSheetOpen(true);
-  }, [isDragging]);
-
-  // ── Action handlers ───────────────────────────
-  const handleCopyVerse = async () => {
-    const text = getRangeText();
-    if (!text) return;
-    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const ref   = start === end ? `${activeBook.name} ${activeChapter}:${start}` : `${activeBook.name} ${activeChapter}:${start}–${end}`;
-    await Clipboard.setStringAsync(`${text}\n\n— ${ref} (${activeVersion})`);
-    clearSelection();
-  };
-
-  const handleShareVerse = async () => {
-    const text = getRangeText();
-    if (!text) return;
-    const start = Math.min(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const end   = Math.max(selectedVerse, selectedVerseEnd ?? selectedVerse);
-    const ref   = start === end ? `${activeBook.name} ${activeChapter}:${start}` : `${activeBook.name} ${activeChapter}:${start}–${end}`;
-    try { await Share.share({ message: `${text}\n\n— ${ref} (${activeVersion})` }); }
-    catch (e) { console.error(e); }
-    clearSelection();
-  };
-
-  const handleToggleSaveVerse = () => {
+  const getRangeText = () => {
     const rangeVerses = getRangeVerses();
-    const keys = rangeVerses.map((v) => getVerseKey(activeBook.name, activeChapter, v.verse));
-    const dataArray = rangeVerses.map((v) => ({
-      book: activeBook.name, chapter: activeChapter, verse: v.verse,
-      text: cleanVerseText(v.text), version: activeVersion,
-    }));
-    storage.toggleSaveVerseRange(keys, dataArray);
-    clearSelection();
+    return rangeVerses.map(v => v.text).join(' ');
   };
-
-  const handleHighlightVerse = () => {
-    const keys = getRangeVerses().map((v) => getHighlightKey(activeBook.name, activeChapter, v.verse));
-    storage.addHighlight(keys);
-    clearSelection();
+  const handleCopyVerse = async () => { 
+    const text = getRangeText(); 
+    if (!text) return; 
+    const ref = `${activeBook.name} ${activeChapter}:${selectedVerse}`; 
+    await Clipboard.setStringAsync(`${text}\n\n— ${ref} (${activeVersion})`); 
+    clearSelection(); 
+  }; 
+  const handleShareVerse = async () => { 
+    const text = getRangeText(); 
+    if (!text) return; 
+    const ref = `${activeBook.name} ${activeChapter}:${selectedVerse}`; 
+    await Share.share({ message: `${text}\n\n— ${ref} (${activeVersion})`, }); 
+    clearSelection(); 
   };
-
-  const handleSaveNote = () => {
-    // Note applies to the first verse of the range
-    const key = getVerseKey(activeBook.name, activeChapter, selectedVerse);
-    storage.saveNote(key, { book: activeBook.name, chapter: activeChapter, verse: selectedVerse }, noteText);
-    clearSelection();
-  };
-
-  const handlePickerSelectChapter = (chapNum) => {
-    setTempSelectedChapter(chapNum); setActiveChapter(chapNum); setPickerStep('verses');
-  };
-
-  const handlePickerSelectVerse = (verseNum) => {
-    const chap = tempSelectedChapter || activeChapter;
-    pendingNavHighlightRef.current = getHighlightKey(activeBook.name, chap, verseNum);
-    setIsPickerOpen(false);
-    setSelectedVerse(null);
-    setSelectedVerseEnd(null);
-    setIsSheetOpen(false);
-    pendingScrollVerseRef.current = verseNum;
-    scrollToVerseIfReady(verseNum);
-  };
-
-  const handleBooksSelectChapter = (chapNum) => {
-    setSelectedChapterForVerses(chapNum);
-    fetchWizardChapterVerseCount(selectedBookForChapters.id, chapNum, selectedBookForChapters.name);
-  };
-
-  const handleBooksSelectVerse = (verseNum) => {
-    const book = selectedBookForChapters;
-    const chapter = selectedChapterForVerses;
-    pendingNavHighlightRef.current = getHighlightKey(book.name, chapter, verseNum);
-    setActiveBook({ id: book.id, name: book.name, chapters: book.chapters });
-    setActiveChapter(chapter);
-    setSelectedVerse(null);
-    setSelectedVerseEnd(null);
-    setIsSheetOpen(false);
-    pendingScrollVerseRef.current = verseNum;
-    resetSelectionWizard();
-    setActiveTab('read');
-  };
-
-  const handleRetry = useCallback(() => {
-    fetchScripture({
-      bookId: activeBook.id, chapter: activeChapter, bookName: activeBook.name,
-      versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop,
-    });
-  }, [activeBook.id, activeBook.name, activeChapter, fetchScripture, versePositionsRef, pendingScrollVerseRef, clearNavHighlight, scrollToTop]);
-
-  const rangeStart = selectedVerse && selectedVerseEnd ? Math.min(selectedVerse, selectedVerseEnd) : selectedVerse;
-  const rangeEnd   = selectedVerse && selectedVerseEnd ? Math.max(selectedVerse, selectedVerseEnd) : selectedVerse;
+  const handleToggleSaveVerse = async () => {
+  const rangeVerses = getRangeVerses();
+  if (rangeVerses.length === 0) return;
+  for (const v of rangeVerses) {
+    const verseObj = {
+      book: activeBook.name,
+      chapter: activeChapter,
+      verse: v.verse,
+      text: cleanVerseText(v.text),
+      version: activeVersion
+    };
+    
+    await storage.toggleSave(verseObj);
+  }
+  
+  clearSelection();
+  console.log("Save operation completed for range");
+};
+  const handleHighlightColorSelect = (color) => { const rangeVerses = getRangeVerses(); setActiveHighlights(prev => { const next = { ...prev }; rangeVerses.forEach(v => { const noteKey = getVerseKey(activeBook.name, activeChapter, v.verse); if (color === null) delete next[noteKey]; else next[noteKey] = color; }); return next; }); clearSelection(); };
+  const handleSaveNote = () => { const key = getVerseKey(activeBook.name, activeChapter, selectedVerse); storage.saveNote(key, { book: activeBook.name, chapter: activeChapter, verse: selectedVerse }, noteText); clearSelection(); };
+  const handlePickerSelectChapter = (chapNum) => { setTempSelectedChapter(chapNum); setActiveChapter(chapNum); setPickerStep('verses'); };
+  const handlePickerSelectVerse = (verseNum) => { const chap = tempSelectedChapter || activeChapter; const key = getHighlightKey(activeBook.name, chap, verseNum); setNavHighlightKey(key); pendingNavHighlightRef.current = getHighlightKey(activeBook.name, chap, verseNum); setIsPickerOpen(false); setSelectedVerse(null); setIsSheetOpen(false); pendingScrollVerseRef.current = verseNum; scrollToVerseIfReady(verseNum); };
+  const handleBooksSelectChapter = (chapNum) => { setSelectedChapterForVerses(chapNum); fetchWizardChapterVerseCount(selectedBookForChapters.id, chapNum, selectedBookForChapters.name); };
+  const resetSelectionWizard = useCallback(() => { setSelectedBookForChapters(null); setSelectedChapterForVerses(null); resetWizardVerses(); }, [resetWizardVerses]);
+  const handleBooksSelectVerse = (verseNum) => { const book = selectedBookForChapters; const chapter = selectedChapterForVerses; const key = getHighlightKey(book.name, chapter, verseNum); setNavHighlightKey(key); pendingNavHighlightRef.current = key; setActiveBook({ id: book.id, name: book.name, chapters: book.chapters }); setActiveChapter(chapter); setSelectedVerse(null); setIsSheetOpen(false); pendingScrollVerseRef.current = verseNum; resetSelectionWizard(); setActiveTab('read'); };
+  const handleRetry = useCallback(() => { fetchScripture({ bookId: activeBook.id, chapter: activeChapter, bookName: activeBook.name, versePositionsRef, pendingScrollVerseRef, clearNavHighlight, onScrollToTop: scrollToTop }); }, [activeBook.id, activeBook.name, activeChapter, fetchScripture, versePositionsRef, pendingScrollVerseRef, clearNavHighlight, scrollToTop]);
 
   return (
     <SafeAreaView style={styles.appContainer} edges={['top', 'left', 'right']}>
-
       {!isInsideSelectionWizard && (
         <View style={styles.topControlHeader}>
           {activeTab === 'read' ? (
             <>
-              <Pressable onPress={() => { setActiveTab('books'); resetSelectionWizard(); }} style={styles.bookSelectorLink}>
-                <AppText style={styles.mainDisplayTitle}>{activeBook.name} {activeChapter}</AppText>
-              </Pressable>
+              <Pressable onPress={() => { setActiveTab('books'); resetSelectionWizard(); }} style={styles.bookSelectorLink}><AppText style={styles.mainDisplayTitle}>{activeBook.name} {activeChapter}</AppText></Pressable>
               <View style={styles.headerRightSettingsRow}>
                 <View style={styles.fontPillContainer}>
-                  <Pressable onPress={storage.decreaseFontSize} disabled={storage.fontSizeScale <= FONT_MIN} style={styles.fontPillBtn} hitSlop={8}>
-                    <AppText style={[styles.fontPillText, storage.fontSizeScale <= FONT_MIN && styles.disabledPillText]}>A-</AppText>
-                  </Pressable>
+                  <Pressable onPress={storage.decreaseFontSize} disabled={storage.fontSizeScale <= FONT_MIN} style={styles.fontPillBtn} hitSlop={8}><AppText style={[styles.fontPillText, storage.fontSizeScale <= FONT_MIN && styles.disabledPillText]}>A-</AppText></Pressable>
                   <View style={styles.fontPillDivider} />
-                  <Pressable onPress={storage.increaseFontSize} disabled={storage.fontSizeScale >= FONT_MAX} style={styles.fontPillBtn} hitSlop={8}>
-                    <AppText style={[styles.fontPillText, storage.fontSizeScale >= FONT_MAX && styles.disabledPillText]}>A+</AppText>
-                  </Pressable>
+                  <Pressable onPress={storage.increaseFontSize} disabled={storage.fontSizeScale >= FONT_MAX} style={styles.fontPillBtn} hitSlop={8}><AppText style={[styles.fontPillText, storage.fontSizeScale >= FONT_MAX && styles.disabledPillText]}>A+</AppText></Pressable>
                 </View>
-                <Pressable onPress={() => setActiveTab('versions')} style={styles.versionPillTab}>
-                  <AppText style={styles.versionPillText}>{activeVersion}</AppText>
-                  <ChevronDown size={10} color="#ffffff" style={styles.versionPillChevron} />
-                </Pressable>
+                <Pressable onPress={() => setActiveTab('versions')} style={styles.versionPillTab}><AppText style={styles.versionPillText}>{activeVersion}</AppText><ChevronDown size={10} color="#ffffff" style={styles.versionPillChevron} /></Pressable>
               </View>
             </>
           ) : activeTab === 'versions' ? (
-            <Pressable onPress={() => setActiveTab('read')} style={styles.backFromVersionsRow}>
-              <ChevronLeft size={22} color="#352a48" style={styles.backFromVersionsChevron} />
-              <AppText style={styles.mainDisplayTitle}>Back</AppText>
-            </Pressable>
+            <Pressable onPress={() => setActiveTab('read')} style={styles.backFromVersionsRow}><ChevronLeft size={22} color="#352a48" style={styles.backFromVersionsChevron} /><AppText style={styles.mainDisplayTitle}>Back</AppText></Pressable>
           ) : (
             <>
-              <View style={styles.metaBreadcrumbRow}>
-                <AppText style={styles.mainDisplayTitle}>Bible</AppText>
-              </View>
+              <View style={styles.metaBreadcrumbRow}><AppText style={styles.mainDisplayTitle}>Bible</AppText></View>
               <View style={styles.headerActionButtonGroup}>
-                <Pressable onPress={() => setActiveTab(activeTab === 'notes' ? 'books' : 'notes')} style={[styles.premiumWorkspaceTab, activeTab === 'notes' && styles.premiumWorkspaceTabActive]}>
-                  <FileText size={13} color={activeTab === 'notes' ? '#ffffff' : '#352a48'} style={styles.tabIcon} />
-                  <AppText style={[styles.premiumTabLabel, activeTab === 'notes' && styles.premiumTabLabelActive]}>Notes</AppText>
-                </Pressable>
-                <Pressable onPress={() => setActiveTab(activeTab === 'highlights' ? 'books' : 'highlights')} style={[styles.premiumWorkspaceTab, activeTab === 'highlights' && styles.premiumWorkspaceTabActive]}>
-                  <Bookmark size={13} color={activeTab === 'highlights' ? '#ffffff' : '#352a48'} fill={activeTab === 'highlights' ? '#ffffff' : 'transparent'} style={styles.tabIcon} />
-                  <AppText style={[styles.premiumTabLabel, activeTab === 'highlights' && styles.premiumTabLabelActive]}>Highlighted</AppText>
-                </Pressable>
+                <Pressable onPress={() => setActiveTab(activeTab === 'notes' ? 'books' : 'notes')} style={[styles.premiumWorkspaceTab, activeTab === 'notes' && styles.premiumWorkspaceTabActive]}><FileText size={13} color={activeTab === 'notes' ? '#ffffff' : '#352a48'} style={styles.tabIcon} /><AppText style={[styles.premiumTabLabel, activeTab === 'notes' && styles.premiumTabLabelActive]}>Notes</AppText></Pressable>
+                <Pressable onPress={() => setActiveTab(activeTab === 'saved' ? 'books' : 'saved')} style={[styles.premiumWorkspaceTab, activeTab === 'saved' && styles.premiumWorkspaceTabActive]}><Star size={13} color={activeTab === 'saved' ? '#ffffff' : '#352a48'} fill={activeTab === 'saved' ? '#ffffff' : 'transparent'} style={styles.tabIcon} /><AppText style={[styles.premiumTabLabel, activeTab === 'saved' && styles.premiumTabLabelActive]}>Saved</AppText></Pressable>
               </View>
             </>
           )}
         </View>
       )}
-
       {!isInsideSelectionWizard && <View style={styles.headerUnderlineWidth} />}
-
       <View style={styles.centralModuleWorkspace}>
-
         {activeTab === 'read' && (
           <View style={styles.flex1}>
             {loading ? (
@@ -345,160 +152,48 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
                 <ActivityIndicator size="small" color="#352a48" />
                 <AppText style={styles.loadingIndicatorSubtitle}>Loading Scripture...</AppText>
               </View>
-            ) : error ? (
-              <View style={styles.loadingWrapperPane}>
-                <AppText style={styles.networkErrorTitle}>Translation Offline</AppText>
-                <AppText style={styles.networkErrorBodyText}>{error}</AppText>
-                <Pressable onPress={handleRetry} style={styles.rectRetryButton}>
-                  <AppText style={styles.rectRetryButtonLabel}>Reload</AppText>
-                </Pressable>
-              </View>
             ) : (
-              <ScrollView
-                ref={scrollRef}
-                key={`${activeBook?.id || activeBook}_ch${activeChapter}`}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.textCanvasLayoutPadding}
-                onScroll={(e) => handleScrollPositionChange(e.nativeEvent.contentOffset.y)}
-                scrollEventThrottle={100}
-                scrollEnabled={!isDragging}
-              >
-                {/* Touch-tracking container for drag detection */}
-                <View
-                  style={styles.editorialParagraphBlock}
-                  onTouchMove={handleVerseContainerTouch}
-                  onTouchEnd={handleDragEnd}
-                >
-                  {verses.map((v) => {
+              <ScrollView ref={scrollRef} key={`${activeBook?.id || activeBook}_ch${activeChapter}`} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.textCanvasLayoutPadding} onScroll={(e) => handleScrollPositionChange(e.nativeEvent.contentOffset.y)} scrollEventThrottle={100} scrollEnabled={true}>
+                <View style={styles.editorialParagraphBlock}>
+                  {Array.isArray(verses) && verses.map((v) => {
                     const verseStringKey = getHighlightKey(activeBook.name, activeChapter, v.verse);
                     const noteKey = getVerseKey(activeBook.name, activeChapter, v.verse);
+                    const color = activeHighlights?.[noteKey];
                     return (
-                      <VerseRow
-                        key={v.pk}
-                        v={v}
-                        isSelected={isVerseInRange(v.verse)}
-                        isNavHighlight={navHighlightKey === verseStringKey}
-                        isHighlighted={storage.highlightedVerses.has(verseStringKey)}
-                        isUnderlined={storage.underlinedVerses.has(noteKey)}
-                        hasNote={!!storage.verseNotes[noteKey]}
-                        isSaved={!!storage.savedVerses[noteKey]}
-                        fontSizeScale={storage.fontSizeScale}
-                        dynamicLineHeight={dynamicLineHeight}
-                        dynamicVerseSpacing={dynamicVerseSpacing}
-                        onPress={() => {
-                          if (navHighlightKey === verseStringKey) { setNavHighlightKey(null); return; }
-                          if (isSheetOpen) { closeSheet(); return; }
-                          storage.toggleUnderline(noteKey);
-                        }}
-                        onLongPress={() => handleVerseLongPress(v.verse)}
-                        onLayout={(e) => handleVerseLayout(v.verse, e.nativeEvent.layout.y)}
-                      />
+                      <VerseRow key={v.pk} v={v} isSelected={isVerseInRange(v.verse)} isNavHighlight={navHighlightKey === verseStringKey} isHighlighted={highlightedVerses.has(verseStringKey)} isUnderlined={underlinedVerses.has(noteKey)} hasNote={!!storage.verseNotes[noteKey]} isSaved={!!storage.savedVerses[noteKey]} fontSizeScale={storage.fontSizeScale} dynamicLineHeight={dynamicLineHeight} dynamicVerseSpacing={dynamicVerseSpacing} highlightColor={color} onSingleTap={() => handleVerseSingleTap(v)} onDoubleTap={() => handleVerseDoubleTap(v)} onLayout={(e) => handleVerseLayout(v.verse, e.nativeEvent.layout.y)} />
                     );
                   })}
                 </View>
-                <View style={[styles.scrollBottomSpacer, { height: floatingNavBottom + 140 }]} />
               </ScrollView>
             )}
-
             {selectedVerse && isSheetOpen && !isPickerOpen && (
-              <ActionSheet
-                bookName={activeBook.name}
-                chapter={activeChapter}
-                verseNum={rangeStart}
-                verseEnd={rangeEnd}
-                isSaved={!!storage.savedVerses[getVerseKey(activeBook.name, activeChapter, selectedVerse)]}
-                isHighlighted={storage.highlightedVerses.has(getHighlightKey(activeBook.name, activeChapter, selectedVerse))}
-                isEditingNote={isEditingNote}
-                noteText={noteText}
-                onNoteChange={setNoteText}
-                onClose={clearSelection}
-                onCopy={handleCopyVerse}
-                onShare={handleShareVerse}
-                onToggleSave={handleToggleSaveVerse}
-                onHighlight={handleHighlightVerse}
-                onOpenNote={() => setIsEditingNote(true)}
-                onSaveNote={handleSaveNote}
-                onCancelNote={() => setIsEditingNote(false)}
-                bottomOffset={floatingNavBottom + 68}
-              />
+              <ActionSheet bookName={activeBook.name} chapter={activeChapter} verseNum={selectedVerse} verseEnd={null} isSaved={!!storage.savedVerses[getVerseKey(activeBook.name, activeChapter, selectedVerse)]} isEditingNote={isEditingNote} noteText={noteText} onNoteChange={setNoteText} onClose={clearSelection} onCopy={handleCopyVerse} onShare={handleShareVerse} onToggleSave={handleToggleSaveVerse} onHighlightColorSelect={handleHighlightColorSelect} onOpenNote={() => setIsEditingNote(true)} onSaveNote={handleSaveNote} onCancelNote={() => setIsEditingNote(false)} bottomOffset={floatingNavBottom + 68} />
             )}
-
             <View style={[styles.floatingTurnPageRow, { bottom: floatingNavBottom }]}>
-              <Pressable onPress={handlePrevChapter} style={styles.turnPageCircleActionBtn}>
-                <ChevronLeft color="#352a48" size={20} strokeWidth={2.5} />
-              </Pressable>
-              <Pressable onPress={() => { setPickerStep('chapters'); setIsPickerOpen(!isPickerOpen); }} style={styles.centerReaderPillLink}>
-                <AppText style={styles.centerReaderPillText}>Chapter {activeChapter}</AppText>
-                <ChevronDown color="#352a48" size={13} style={styles.centerReaderChevron} />
-              </Pressable>
-              <Pressable onPress={handleNextChapter} style={styles.turnPageCircleActionBtn}>
-                <ChevronRight color="#352a48" size={20} strokeWidth={2.5} />
-              </Pressable>
+              <Pressable onPress={handlePrevChapter} style={styles.turnPageCircleActionBtn}><ChevronLeft color="#352a48" size={20} strokeWidth={2.5} /></Pressable>
+              <Pressable onPress={() => { setPickerStep('chapters'); setIsPickerOpen(!isPickerOpen); }} style={styles.centerReaderPillLink}><AppText style={styles.centerReaderPillText}>Chapter {activeChapter}</AppText><ChevronDown color="#352a48" size={13} style={styles.centerReaderChevron} /></Pressable>
+              <Pressable onPress={handleNextChapter} style={styles.turnPageCircleActionBtn}><ChevronRight color="#352a48" size={20} strokeWidth={2.5} /></Pressable>
             </View>
-
-            <ChapterVersePicker
-              isOpen={isPickerOpen}
-              bookName={activeBook.name}
-              bookChapterCount={activeBookFull?.chapters || 50}
-              activeChapter={activeChapter}
-              pickerStep={pickerStep}
-              tempSelectedChapter={tempSelectedChapter}
-              verseCount={verses?.length > 0 ? verses.length : wizardVerses?.length > 0 ? wizardVerses.length : 30}
-              onClose={() => setIsPickerOpen(false)}
-              onSelectChapter={handlePickerSelectChapter}
-              onSelectVerse={handlePickerSelectVerse}
-              onBackToChapters={() => setPickerStep('chapters')}
-              tabBarHeight={tabBarHeight}
-            />
+            <ChapterVersePicker isOpen={isPickerOpen} bookName={activeBook.name} bookChapterCount={activeBookFull?.chapters || 50} activeChapter={activeChapter} pickerStep={pickerStep} tempSelectedChapter={tempSelectedChapter} verseCount={verses?.length > 0 ? verses.length : wizardVerses?.length > 0 ? wizardVerses.length : 30} onClose={() => setIsPickerOpen(false)} onSelectChapter={handlePickerSelectChapter} onSelectVerse={handlePickerSelectVerse} onBackToChapters={() => setPickerStep('chapters')} tabBarHeight={tabBarHeight} />
           </View>
         )}
-
         {activeTab === 'books' && (
-          <BooksView
-            filteredBooks={filteredBooks}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onSearchClear={() => setSearchQuery('')}
-            selectedBook={selectedBookForChapters}
-            selectedChapter={selectedChapterForVerses}
-            wizardVerses={wizardVerses}
-            wizardVersesLoading={wizardVersesLoading}
-            onSelectBook={(bookItem) => { setSearchQuery(''); setSelectedBookForChapters(bookItem); }}
-            onSelectChapter={handleBooksSelectChapter}
-            onSelectVerse={handleBooksSelectVerse}
-            onBackFromChapters={() => setSelectedBookForChapters(null)}
-            onBackFromVerses={() => setSelectedChapterForVerses(null)}
-            tabBarHeight={tabBarHeight}
-          />
+          <BooksView filteredBooks={filteredBooks} searchQuery={searchQuery} onSearchChange={setSearchQuery} onSearchClear={() => setSearchQuery('')} selectedBook={selectedBookForChapters} selectedChapter={selectedChapterForVerses} wizardVerses={wizardVerses} wizardVersesLoading={wizardVersesLoading} onSelectBook={(bookItem) => { setSearchQuery(''); setSelectedBookForChapters(bookItem); }} onSelectChapter={handleBooksSelectChapter} onSelectVerse={handleBooksSelectVerse} onBackFromChapters={() => setSelectedBookForChapters(null)} onBackFromVerses={() => setSelectedChapterForVerses(null)} tabBarHeight={tabBarHeight} />
         )}
-
         {activeTab === 'versions' && (
           <View style={styles.flex1}>
             <ScrollView contentContainerStyle={styles.versionsScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.versionsTitleBlock}>
-                <AppText style={styles.versionsTitleText}>Translations</AppText>
-                <AppText style={styles.versionsSubtitleText}>Select your preferred Bible translation</AppText>
-              </View>
+              <View style={styles.versionsTitleBlock}><AppText style={styles.versionsTitleText}>Translations</AppText><AppText style={styles.versionsSubtitleText}>Select your preferred Bible translation</AppText></View>
               <View style={styles.translationsList}>
                 {POPULAR_TRANSLATIONS.map((translation) => (
-                  <Pressable
-                    key={translation.code}
-                    style={[styles.archiveNoteDataCard, activeVersion === translation.code && styles.activeTranslationCard]}
-                    onPress={() => {
-                      if (lastReadVerseRef.current) pendingScrollVerseRef.current = lastReadVerseRef.current;
-                      setActiveVersion(translation.code);
-                      setActiveTab('read');
-                    }}
-                  >
-                    <AppText style={styles.translationCode}>{translation.code}</AppText>
-                    <AppText style={styles.translationLabel}>{translation.label}</AppText>
+                  <Pressable key={translation.code} style={[styles.archiveNoteDataCard, activeVersion === translation.code && styles.activeTranslationCard]} onPress={() => { if (lastReadVerseRef.current) pendingScrollVerseRef.current = lastReadVerseRef.current; setActiveVersion(translation.code); setActiveTab('read'); }}>
+                    <AppText style={styles.translationCode}>{translation.code}</AppText><AppText style={styles.translationLabel}>{translation.label}</AppText>
                   </Pressable>
                 ))}
               </View>
             </ScrollView>
           </View>
         )}
-
         {activeTab === 'notes' && (
           <ScrollView contentContainerStyle={styles.userDashboardArchiveScroll} showsVerticalScrollIndicator={false}>
             <AppText style={styles.dashboardViewMainHeader}>My Notes</AppText>
@@ -507,18 +202,13 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
             ) : (
               Object.entries(storage.verseNotes).map(([noteKey, noteData]) => (
                 <View key={noteKey} style={styles.archiveNoteDataCard}>
-                  <View style={styles.archiveCardMetaHeader}>
-                    <AppText style={styles.archiveCardVerseTitle}>{noteData.book} {noteData.chapter}:{noteData.verse}</AppText>
-                    <Pressable onPress={() => storage.removeNote(noteKey)}><Trash2 color="#ef4444" size={16} /></Pressable>
-                  </View>
-                  <AppText style={styles.archiveCardBodyContent}>{noteData.note}</AppText>
-                  <AppText style={styles.noteTimestamp}>{new Date(noteData.timestamp).toLocaleDateString()}</AppText>
+                  <View style={styles.archiveCardMetaHeader}><AppText style={styles.archiveCardVerseTitle}>{noteData.book} {noteData.chapter}:{noteData.verse}</AppText><Pressable onPress={() => storage.removeNote(noteKey)}><Trash2 color="#ef4444" size={16} /></Pressable></View>
+                  <AppText style={styles.archiveCardBodyContent}>{noteData.note}</AppText><AppText style={styles.noteTimestamp}>{new Date(noteData.timestamp).toLocaleDateString()}</AppText>
                 </View>
               ))
             )}
           </ScrollView>
         )}
-
         {activeTab === 'highlights' && (
           <ScrollView contentContainerStyle={styles.userDashboardArchiveScroll} showsVerticalScrollIndicator={false}>
             <AppText style={styles.dashboardViewMainHeader}>Highlighted Verses</AppText>
@@ -529,10 +219,7 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
                 const [book, chapter, verse] = highlightKey.split('_');
                 return (
                   <View key={highlightKey} style={styles.archiveHighlightDataCard}>
-                    <View style={styles.archiveCardMetaHeader}>
-                      <AppText style={styles.archiveCardVerseTitle}>{book} {chapter}:{verse}</AppText>
-                      <Pressable onPress={() => storage.removeHighlight(highlightKey)}><Trash2 color="#ef4444" size={16} /></Pressable>
-                    </View>
+                    <View style={styles.archiveCardMetaHeader}><AppText style={styles.archiveCardVerseTitle}>{book} {chapter}:{verse}</AppText><Pressable onPress={() => storage.removeHighlight(highlightKey)}><Trash2 color="#ef4444" size={16} /></Pressable></View>
                     <AppText style={[styles.archiveCardBodyContent, styles.italicText]}>Verse highlighted during personal reading.</AppText>
                   </View>
                 );
@@ -540,12 +227,28 @@ export const BibleTabContent = ({ tabBarHeight = 60 }) => {
             )}
           </ScrollView>
         )}
-
+        {activeTab === 'saved' && (
+          <ScrollView contentContainerStyle={styles.userDashboardArchiveScroll} showsVerticalScrollIndicator={false}>
+            <AppText style={styles.dashboardViewMainHeader}>Saved Verses</AppText>
+            {Object.keys(storage.savedVerses).length === 0 ? (
+              <AppText style={styles.emptyDashboardStatusText}>No saved verses yet.</AppText>
+            ) : (
+              (Object.entries(storage.savedVerses || {}).map(([saveKey, saveData]) => (
+                <View key={saveKey} style={styles.archiveNoteDataCard}>
+                  <View style={styles.archiveCardMetaHeader}><AppText style={styles.archiveCardVerseTitle}>{saveData.book} {saveData.chapter}:{saveData.verse}</AppText>
+                  <Pressable onPress={() => storage.deleteSavedVerse(saveKey, saveData)}>
+                    <Trash2 color="#ef4444" size={16} />
+                  </Pressable></View>
+                  <AppText style={styles.archiveCardBodyContent}>{saveData.text}</AppText>
+                </View>
+              )))
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
   italicText: { fontStyle: 'italic' },

@@ -116,14 +116,15 @@ export default function MachairaHome({
     }, 3200);
   }, [onLogout]);
 
-  const handleContinueSession = useCallback(() => {
-    const resumeFn = onResumeSession ?? onTriggerLogin;
-    resumeFn?.();
-    if (onResumeSession) {
-      const firstName = (user?.name || 'friend').split(' ')[0];
-      setToast({ visible: true, message: `Welcome back, ${firstName}!` });
-    }
-  }, [onResumeSession, onTriggerLogin, user]);
+  const handleContinueSession = useCallback(async () => {
+  const resumeFn = onResumeSession ?? onTriggerLogin;
+  const result = await resumeFn?.();
+  if (result?.resumed) {
+    const firstName = (user?.name || 'friend').split(' ')[0];
+    setToast({ visible: true, message: `Welcome back, ${firstName}!` });
+  }
+}, [onResumeSession, onTriggerLogin, user]);
+
 
   useEffect(() => {
     return () => {
