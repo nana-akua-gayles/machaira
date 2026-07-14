@@ -6,6 +6,7 @@ import { BookOpen, Search, History, Layers, Bookmark, Play, Bell, Calendar, Book
 import { AppText } from '../../components/AppText'; 
 import mp1 from '../../../assets/images/mp1.jpg';
 import { PastTabContent } from './homeArchive/PastTabContent';
+import { useTheme } from '../../context/ThemeContext';
 
 // Import the three isolated profile sheets securely
 import { GuestProfileModalSheet } from '../onboarding/profile/GuestProfile';
@@ -17,8 +18,9 @@ const TABS = ['Past', 'Related', 'Saved', 'Search'];
 // 1. ATOMIC SUB-COMPONENTS
 // ==========================================
 const TabBarButton = React.memo(({ tab, isActive, onPress }) => {
+  const { colors } = useTheme();
   const size = 14;
-  const color = isActive ? '#ef4444' : '#64748b';
+  const color = isActive ? colors.primary : colors.textSecondary;
 
   const tabIcon = useMemo(() => {
     switch (tab) {
@@ -33,11 +35,23 @@ const TabBarButton = React.memo(({ tab, isActive, onPress }) => {
   return (
     <Pressable 
       onPress={onPress} 
-      style={[styles.tabItemButton, isActive ? styles.tabActive : styles.tabInactive]}
+      style={[
+        styles.tabItemButton,
+        isActive
+          ? [styles.tabActive, { borderBottomColor: colors.primary }]
+          : styles.tabInactive,
+      ]}
     >
       <View style={styles.rowCenter}>
         {tabIcon}
-        <AppText type="bold" style={[styles.tabLabelText, isActive && styles.tabLabelActive]}>
+        <AppText
+          type="bold"
+          style={[
+            styles.tabLabelText,
+            { color: colors.textSecondary },
+            isActive && [styles.tabLabelActive, { color: colors.text }],
+          ]}
+        >
           {tab}
         </AppText>
       </View>
@@ -45,14 +59,22 @@ const TabBarButton = React.memo(({ tab, isActive, onPress }) => {
   );
 });
 
-const FallbackTabContent = React.memo(({ tabName }) => (
-  <View style={styles.fallbackContainer}>
-    <BookOpen color="#ef4444" size={24} />
-    <AppText type="semiBold" style={styles.fallbackText}>
-      {tabName} feed coming soon...
-    </AppText>
-  </View>
-));
+const FallbackTabContent = React.memo(({ tabName }) => {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={[
+        styles.fallbackContainer,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <BookOpen color={colors.primary} size={24} />
+      <AppText type="semiBold" style={[styles.fallbackText, { color: colors.textSecondary }]}>
+        {tabName} feed coming soon...
+      </AppText>
+    </View>
+  );
+});
 
 // ==========================================
 // 2. MAIN CORE COMPONENT
@@ -70,6 +92,7 @@ export default function MachairaHome({
   onChangeAccount,
   onDeleteAccount
 }) {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('Past');
   const [toast, setToast] = useState({ visible: false, message: '' });
   const insets = useSafeAreaInsets();
@@ -135,13 +158,18 @@ export default function MachairaHome({
   }, []);
 
   return (
-    <View style={styles.flexOne}>
+    <View style={[styles.flexOne, { backgroundColor: colors.background }]}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={[styles.scrollContent]} 
       >
         {/* Profile Header Section */}
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.background, borderBottomColor: colors.border },
+          ]}
+        >
           <Pressable 
             style={styles.profileTarget} 
             onPress={handleProfilePress} 
@@ -149,14 +177,31 @@ export default function MachairaHome({
           >
             <View style={styles.avatarAnchorContainer}>
               {userAvatarUrl ? (
-                <Image source={{ uri: userAvatarUrl }} style={styles.avatarImage} />
+                <Image
+                  source={{ uri: userAvatarUrl }}
+                  style={[styles.avatarImage, { backgroundColor: colors.card }]}
+                />
               ) : (
-                <View style={[styles.avatarFallback, isLoggedOut && styles.avatarLoggedOutFallback]}>
-                  <User color={isLoggedOut ? "#ef4444" : "#ef4444"} size={18} strokeWidth={2.5} />
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: colors.card },
+                    isLoggedOut && [
+                      styles.avatarLoggedOutFallback,
+                      { backgroundColor: colors.card, borderColor: colors.primary },
+                    ],
+                  ]}
+                >
+                  <User color={colors.primary} size={18} strokeWidth={2.5} />
                 </View>
               )}
               {isLoggedOut && (
-                <View style={styles.lockBadgeFrame}>
+                <View
+                  style={[
+                    styles.lockBadgeFrame,
+                    { backgroundColor: colors.primary, borderColor: colors.background },
+                  ]}
+                >
                   <Lock color="#ffffff" size={8} strokeWidth={3} />
                 </View>
               )}
@@ -165,7 +210,11 @@ export default function MachairaHome({
             <View style={styles.flexOne}>
               <AppText 
                 type={isLoggedOut ? "bold" : "regular"}
-                style={[styles.greetingMicro, isLoggedOut && styles.greetingLoggedOutMicro]}
+                style={[
+                  styles.greetingMicro,
+                  { color: colors.textSecondary },
+                  isLoggedOut && [styles.greetingLoggedOutMicro, { color: colors.primary }],
+                ]}
                 numberOfLines={1}
               >
                 {greetingText}
@@ -173,37 +222,61 @@ export default function MachairaHome({
               <AppText 
                 type="bold" 
                 numberOfLines={1} 
-                style={[styles.profileName, isLoggedOut && styles.profileLoggedOutName]}
+                style={[
+                  styles.profileName,
+                  { color: colors.text },
+                  isLoggedOut && [styles.profileLoggedOutName, { color: colors.text }],
+                ]}
               >
                 {userDisplayName}
               </AppText>
             </View>
           </Pressable>
 
-          <Pressable style={styles.subscribeBtn}>
-            <Bell color="#475569" size={21} strokeWidth={2.5} style={styles.bellIconSpacing} />
+          <Pressable style={[styles.subscribeBtn, { backgroundColor: colors.border }]}>
+            <Bell color={colors.textSecondary} size={21} strokeWidth={2.5} style={styles.bellIconSpacing} />
           </Pressable>
         </View>
 
         {/* Feature Hero Banner Segment */}
-        <View style={styles.heroWrapper}>
-          <Image source={mp1} style={styles.heroImage} resizeMode="cover" />
+        <View
+          style={[
+            styles.heroWrapper,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Image
+            source={mp1}
+            style={[styles.heroImage, { backgroundColor: colors.border }]}
+            resizeMode="cover"
+          />
           <View style={styles.heroPane}>
             <View style={styles.rowCenter}>
-              <Calendar color="#475569" size={14} style={styles.calendarIconSpacing} />
-              <AppText type="semiBold" style={styles.metaText}>Monday, August 29, 2023</AppText>
+              <Calendar color={colors.textSecondary} size={14} style={styles.calendarIconSpacing} />
+              <AppText type="semiBold" style={[styles.metaText, { color: colors.textSecondary }]}>
+                Monday, August 29, 2023
+              </AppText>
             </View>
-            <AppText type="bold" style={styles.episodeText} numberOfLines={2}>
+            <AppText
+              type="bold"
+              style={[styles.episodeText, { color: colors.text }]}
+              numberOfLines={2}
+            >
               Episode 217 – How to Experience the Workings of the Word
             </AppText>
             
             <View style={[styles.rowCenter, styles.actionRow]}>
-              <Pressable style={styles.listenBtn}>
-                <Play color="#1e293b" size={16} fill="#1e293b" style={styles.playIconSpacing} />
-                <AppText type="semiBold" style={styles.listenText}>Listen Now</AppText>
+              <Pressable style={[styles.listenBtn, { backgroundColor: colors.border }]}>
+                <Play color={colors.text} size={16} fill={colors.text} style={styles.playIconSpacing} />
+                <AppText type="semiBold" style={[styles.listenText, { color: colors.text }]}>
+                  Listen Now
+                </AppText>
               </Pressable>
               
-              <Pressable style={styles.readBtn} onPress={handleBibleNavigation}>
+              <Pressable
+                style={[styles.readBtn, { backgroundColor: colors.primary }]}
+                onPress={handleBibleNavigation}
+              >
                 <BookText color="#fff" size={16} style={styles.bookIconSpacing} />
                 <AppText type="semiBold" style={styles.readText}>Read Text</AppText>
               </Pressable>
@@ -213,8 +286,10 @@ export default function MachairaHome({
 
         {/* Section Divider Headers */}
         <View style={styles.sectionHeader}>
-          <AppText type="bold" style={styles.sectionTitle}>Explore Archive</AppText>
-          <View style={styles.sectionDivider} />
+          <AppText type="bold" style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            Explore Archive
+          </AppText>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
         </View>
 
         {/* Segment Filter Selection Menu */}
@@ -275,43 +350,43 @@ export default function MachairaHome({
 // 3. CLEAN STYLES MANAGEMENT
 // ==========================================
 const styles = StyleSheet.create({
-  flexOne: { flex: 1, backgroundColor: '#fafaf9' },
+  flexOne: { flex: 1 },
   rowCenter: { flexDirection: 'row', alignItems: 'center' },
   actionRow: { flexDirection: 'row', width: '100%' }, 
   scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, backgroundColor: '#fafaf9', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, marginBottom: 20 },
   profileTarget: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 16 },
   avatarAnchorContainer: { position: 'relative', width: 38, height: 38 },
-  avatarImage: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffffff' },
-  avatarFallback: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fed7aa' },
-  avatarLoggedOutFallback: { backgroundColor: '#ffffff', borderColor: '#ef4444' },
-  lockBadgeFrame: { position: 'absolute', bottom: -1, right: -1, backgroundColor: '#ef4444', width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#fafaf9' },
-  greetingMicro: { fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.6 },
-  greetingLoggedOutMicro: { color: '#ef4444', fontStyle: 'bold', textTransform: 'none' },
-  profileName: { fontSize: 15, color: '#0f172a', marginTop: -1 },
-  profileLoggedOutName: { color: '#0f172a' },
-  subscribeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  subscribeText: { color: '#475569', fontSize: 11, letterSpacing: 0.3 },
-  heroWrapper: { backgroundColor: '#ffffff', borderRadius: 16, overflow: 'hidden', marginBottom: 28, borderWidth: 1, borderColor: '#f1f5f9', ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16 }, android: { elevation: 4 } }) },
-  heroImage: { width: '100%', height: 195, backgroundColor: '#e2e8f0' },
+  avatarImage: { width: 38, height: 38, borderRadius: 19 },
+  avatarFallback: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fed7aa' },
+  avatarLoggedOutFallback: {},
+  lockBadgeFrame: { position: 'absolute', bottom: -1, right: -1, width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5 },
+  greetingMicro: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 },
+  greetingLoggedOutMicro: { fontStyle: 'bold', textTransform: 'none' },
+  profileName: { fontSize: 15, marginTop: -1 },
+  profileLoggedOutName: {},
+  subscribeBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  subscribeText: { fontSize: 11, letterSpacing: 0.3 },
+  heroWrapper: { borderRadius: 16, overflow: 'hidden', marginBottom: 28, borderWidth: 1, ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16 }, android: { elevation: 4 } }) },
+  heroImage: { width: '100%', height: 195 },
   heroPane: { padding: 20, alignItems: 'flex-start' },
-  metaText: { fontSize: 13, color: '#475569' },
-  episodeText: { fontSize: 18, color: '#0f172a', lineHeight: 24, marginBottom: 20 },
-  listenBtn: { flex: 1, flexDirection: 'row', backgroundColor: '#f1f5f9', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  readBtn: { flex: 1, flexDirection: 'row', backgroundColor: '#ef4444', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  listenText: { color: '#1e293b', fontSize: 14 },
+  metaText: { fontSize: 13 },
+  episodeText: { fontSize: 18, lineHeight: 24, marginBottom: 20 },
+  listenBtn: { flex: 1, flexDirection: 'row', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  readBtn: { flex: 1, flexDirection: 'row', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  listenText: { fontSize: 14 },
   readText: { color: '#ffffff', fontSize: 14 },
   sectionHeader: { marginTop: 22, marginBottom: 16, gap: 4 },
-  sectionTitle: { fontSize: 13, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, paddingLeft: 2 },
-  sectionDivider: { height: 1, backgroundColor: '#e2e8f0', width: '30%', marginLeft: 2, opacity: 0.7 },
+  sectionTitle: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, paddingLeft: 2 },
+  sectionDivider: { height: 1, width: '30%', marginLeft: 2, opacity: 0.7 },
   tabBar: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 20, paddingHorizontal: 4 },
   tabItemButton: { paddingVertical: 8, flex: 1, alignItems: 'center', borderBottomWidth: 2 },
   tabInactive: { backgroundColor: 'transparent', borderBottomColor: 'transparent' },
-  tabActive: { backgroundColor: 'transparent', borderBottomColor: '#ef4444' },
-  tabLabelText: { color: '#64748b', fontSize: 13, letterSpacing: -0.1, marginLeft: 5 }, 
-  tabLabelActive: { color: '#0f172a' },
-  fallbackContainer: { backgroundColor: '#ffffff', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9', marginTop: 10 },
-  fallbackText: { color: '#64748b', fontSize: 14, marginTop: 8 },
+  tabActive: { backgroundColor: 'transparent' },
+  tabLabelText: { fontSize: 13, letterSpacing: -0.1, marginLeft: 5 }, 
+  tabLabelActive: {},
+  fallbackContainer: { borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginTop: 10 },
+  fallbackText: { fontSize: 14, marginTop: 8 },
   bellIconSpacing: { marginRight: 5 },
   calendarIconSpacing: { marginRight: 6 },
   playIconSpacing: { marginRight: 8 },

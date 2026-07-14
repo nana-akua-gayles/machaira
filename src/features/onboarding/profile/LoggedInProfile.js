@@ -132,14 +132,15 @@ const ProfileCard = ({ user, isLoggedOut, onProfilePress }) => {
         <View style={styles.premiumLockBackdropGlow} />
         <View style={styles.premiumLockLayoutContent}>
           <View style={styles.premiumLockAvatarFrame}>
+            <View style={styles.premiumavatarRingOuterEdge}>
             {user.photo ? (
               <Image source={{ uri: user.photo }} style={styles.premiumLockAvatarImage} />
             ) : (
               <View style={styles.welcomeBackAvatarFallback}>
-                <User color="#fca5a5" size={20} />
+                <User color="red" size={20} />
               </View>
             )}
-          </View>
+          </View></View>
           
           <View style={styles.premiumLockIdentityDetails}>
             <AppText type="bold" style={styles.premiumLockNameText}>{user.name}</AppText>
@@ -545,27 +546,28 @@ const styles = StyleSheet.create({
   screenContainer: { flex: 1, backgroundColor: '#ffffff' },
   container: { flex: 1, backgroundColor: '#ffffff' },
   profileHeaderCardWrapper: { paddingHorizontal: 20, marginBottom: 14 },
-  mainIdentityCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 22, borderRadius: 26, backgroundColor: '#ba0707' },
+  mainIdentityCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 22, borderRadius: 26, borderWidth: 1, borderColor: '#352a48', backgroundColor: 'white' },
   avatarRingOuterEdge: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#34a853', padding: 3, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   largeProfileAvatar: { width: '100%', height: '100%', borderRadius: 26 },
   largeFallbackAvatarCircle: { width: '100%', height: '100%', borderRadius: 26, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' },
   identityTextDetails: { flex: 1, justifyContent: 'center' },
   nameBadgeInlineContainer: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  textLight: { fontSize: 19, color: '#ffffff', letterSpacing: -0.3 },
+  textLight: { fontSize: 19, color: '#352a48', letterSpacing: -0.3 },
   activeIndicatorPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e6f4ea', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: '#34a853' },
   livePulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34a853', marginRight: 4 },
   activePillText: { fontSize: 8.5, color: '#137333', letterSpacing: 0.6, fontWeight: '800' },
-  subLight: { fontSize: 13, color: '#e2e8f0', marginTop: 4 },
+  subLight: { fontSize: 13, color: '#352a48', marginTop: 4 },
   
-  premiumLockScreenCard: { backgroundColor: '#ba0707', borderRadius: 26, padding: 18, overflow: 'hidden', shadowColor: '#ba0707', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 4 },
+  premiumLockScreenCard: { backgroundColor: 'white', borderWidth: 1, borderColor: '#352a48', borderRadius: 26, padding: 18, overflow: 'hidden', shadowColor: '#352a48', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 4 },
   premiumLockBackdropGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255, 255, 255, 0.04)' },
   premiumLockLayoutContent: { flexDirection: 'row', alignItems: 'center' },
+  premiumavatarRingOuterEdge: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#352a48', padding: 3, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   premiumLockAvatarFrame: { position: 'relative', width: 54, height: 54, marginRight: 16 },
   premiumLockAvatarImage: { width: '100%', height: '100%', borderRadius: 27, opacity: 0.85, borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.4)' },
   premiumLockIdentityDetails: { flex: 1, justifyContent: 'center' },
-  premiumLockNameText: { fontSize: 18, color: '#ffffff', letterSpacing: -0.2 },
-  premiumLockSecondaryActionText: { fontSize: 12.5, color: 'rgba(255, 255, 255, 0.7)', marginTop: 3 },
-  premiumLockChevronCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255, 255, 255, 0.15)', justifyContent: 'center', alignItems: 'center' },
+  premiumLockNameText: { fontSize: 18, color: '#352a48', letterSpacing: -0.2 },
+  premiumLockSecondaryActionText: { fontSize: 13, color: '#352a48', marginTop: 3 },
+  premiumLockChevronCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#352a48', justifyContent: 'center', alignItems: 'center' },
 
   welcomeBackAvatarFallback: { width: '100%', height: '100%', borderRadius: 27, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
   centeredActionsWrapperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', paddingHorizontal: 20, marginBottom: 20 },

@@ -2,32 +2,46 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../config/supabaseClient';
 import { FONT_DEFAULT, FONT_MIN, FONT_MAX, FONT_STEP, STORAGE_KEYS } from './Constants';
+import { getHighlightKey } from './Utils';
 
 export const Usebiblestorage = () => {
   const [savedVerses, setSavedVerses] = useState({});
   const [verseNotes, setVerseNotes] = useState({});
+  const [highlights, setHighlights] = useState({});
   const [fontSizeScale, setFontSizeScale] = useState(FONT_DEFAULT);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
     const init = async () => {
-      const [storedNotes, storedFont] = await Promise.all([
+      const [storedSaved, storedNotes, storedHighlights, storedFont] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.savedVerses),
         AsyncStorage.getItem(STORAGE_KEYS.verseNotes),
+        AsyncStorage.getItem(STORAGE_KEYS.highlights),
         AsyncStorage.getItem(STORAGE_KEYS.fontSize),
       ]);
+
+      if (storedSaved) setSavedVerses(JSON.parse(storedSaved));
       if (storedNotes) setVerseNotes(JSON.parse(storedNotes));
+      if (storedHighlights) setHighlights(JSON.parse(storedHighlights));
       if (storedFont) setFontSizeScale(Number(storedFont));
-      
-      const { data: { session } } = await supabase.auth.getSession();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       setUser(session?.user ?? null);
       fetchSavedVerses(session?.user ?? null);
     };
+
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ??null);
       fetchSavedVerses(session?.user ?? null);
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -37,16 +51,17 @@ export const Usebiblestorage = () => {
         .from('saved_verses')
         .select('*')
         .eq('user_id', currentUser.id);
-      
+
       if (error) {
-        console.error("Error fetching verses:", error);
+        console.error(error);
         return;
       }
-      
-      const formatted = (data || []).reduce((acc, curr) => {
-        acc[`${curr.book}_${curr.chapter}_${curr.verse}`] = curr;
+
+      const formatted = (data || []).reduce((acc, item) => {
+        acc[`${item.book}_${item.chapter}_${item.verse}`] = item;
         return acc;
       }, {});
+
       setSavedVerses(formatted);
     } else {
       const local = await AsyncStorage.getItem(STORAGE_KEYS.savedVerses);
@@ -68,21 +83,54 @@ export const Usebiblestorage = () => {
         .eq('verse', verse);
 
       if (existing && existing.length > 0) {
-        await supabase.from('saved_verses').delete().eq('id', existing[0].id);
+        await supabase
+          .from('saved_verses')
+          .delete()
+          .eq('id', existing[0].id);
       } else {
-        await supabase.from('saved_verses').insert([{ user_id: user.id, book, chapter, verse, text }]);
+        await supabase
+          .from('saved_verses')
+          .insert([{ user_id: user.id, book, chapter, verse, text }]);
       }
+
       fetchSavedVerses(user);
     } else {
       const current = { ...savedVerses };
+
       if (current[key]) delete current[key];
       else current[key] = verseObj;
+
       setSavedVerses(current);
-      await AsyncStorage.setItem(STORAGE_KEYS.savedVerses, JSON.stringify(current));
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.savedVerses,
+        JSON.stringify(current)
+      );
     }
   };
 
-  // Added this method to specifically handle deletions from the Saved tab
+  const toggleHighlight = async (verseObj, color) => {
+  const { book, chapter, verse } = verseObj;
+  const verseKey = getHighlightKey(verseObj.book, verseObj.chapter, verseObj.verse);
+
+  setHighlights(prev => {
+    const next = { ...prev };
+
+    if (next[verseKey]) {
+      delete next[verseKey];
+    } else {
+      next[verseKey] = color;
+    }
+
+    AsyncStorage.setItem(
+      STORAGE_KEYS.highlights,
+      JSON.stringify(next)
+    );
+
+    return next;
+  });
+};
+
   const deleteSavedVerse = async (saveKey, saveData) => {
     if (user) {
       await supabase
@@ -92,12 +140,19 @@ export const Usebiblestorage = () => {
         .eq('book', saveData.book)
         .eq('chapter', saveData.chapter)
         .eq('verse', saveData.verse);
+
       fetchSavedVerses(user);
     } else {
       const current = { ...savedVerses };
+
       delete current[saveKey];
+
       setSavedVerses(current);
-      await AsyncStorage.setItem(STORAGE_KEYS.savedVerses, JSON.stringify(current));
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.savedVerses,
+        JSON.stringify(current)
+      );
     }
   };
 
@@ -114,34 +169,55 @@ export const Usebiblestorage = () => {
   };
 
   const saveNote = async (verseKey, noteData, noteText) => {
-    setVerseNotes((prev) => {
+    setVerseNotes(prev => {
       const updated = { ...prev };
-      if (!noteText.trim()) delete updated[verseKey];
-      else updated[verseKey] = { ...noteData, note: noteText, timestamp: Date.now() };
-      AsyncStorage.setItem(STORAGE_KEYS.verseNotes, JSON.stringify(updated));
+
+      if (!noteText.trim()) {
+        delete updated[verseKey];
+      } else {
+        updated[verseKey] = {
+          ...noteData,
+          note: noteText,
+          timestamp: Date.now(),
+        };
+      }
+
+      AsyncStorage.setItem(
+        STORAGE_KEYS.verseNotes,
+        JSON.stringify(updated)
+      );
+
       return updated;
     });
   };
 
   const removeNote = async (noteKey) => {
-    setVerseNotes((prev) => {
+    setVerseNotes(prev => {
       const updated = { ...prev };
+
       delete updated[noteKey];
-      AsyncStorage.setItem(STORAGE_KEYS.verseNotes, JSON.stringify(updated));
+
+      AsyncStorage.setItem(
+        STORAGE_KEYS.verseNotes,
+        JSON.stringify(updated)
+      );
+
       return updated;
     });
   };
 
-  return { 
-    savedVerses, 
-    verseNotes, 
-    fontSizeScale, 
-    user, 
+  return {
+    savedVerses,
+    verseNotes,
+    highlights,
+    fontSizeScale,
+    user,
     toggleSave,
-    deleteSavedVerse, // Exported new function
-    saveNote, 
-    removeNote, 
-    increaseFontSize, 
-    decreaseFontSize 
+    toggleHighlight,
+    deleteSavedVerse,
+    saveNote,
+    removeNote,
+    increaseFontSize,
+    decreaseFontSize,
   };
 };

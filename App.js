@@ -1,72 +1,96 @@
-import 'react-native-url-polyfill/auto';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert 
-} from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack'; 
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
-import { Home, Book, ShoppingBag, FolderHeart, LayoutGrid } from 'lucide-react-native';
-import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_900Black} from '@expo-google-fonts/montserrat';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
+import "react-native-url-polyfill/auto";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert} from "react-native";
+import { NavigationContainer, DefaultTheme, DarkTheme,} from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider, useSafeAreaInsets,} from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
+import { Home, Book, ShoppingBag, FolderHeart, LayoutGrid,} from "lucide-react-native";
+import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_900Black,} from "@expo-google-fonts/montserrat";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 
-import { supabase } from './src/config/supabaseClient';
-import { AppText } from './src/components/AppText';
-import { OnboardingScreen } from './src/features/onboarding/OnboardingScreen';
-import HomeScreen from './src/features/home/HomeScreenContent';
-import { BibleTabContent } from './src/features/bible/BibleTabContent';
-import { SupportFeedbackScreen } from './src/features/onboarding/profile/AccUtilities/SupportFeedbackScreen'; 
-import MyNotesTabContent from './src/features/onboarding/profile/AccUtilities/MyNotes'; 
-import { Testimony } from './src/features/onboarding/profile/AccUtilities/Testimony'; 
-import { FavoriteBooksScreen } from './src/features/onboarding/profile/AccUtilities/FavoriteBooks'; 
-import machairabot from './assets/images/machairabot.png';
-import * as Linking from 'expo-linking';
-import { executeGoogleSignIn } from './src/features/onboarding/googleAuth';
-import * as WebBrowser from 'expo-web-browser'; 
-
-
+import { supabase } from "./src/config/supabaseClient";
+import { AppText } from "./src/components/AppText";
+import { OnboardingScreen } from "./src/features/onboarding/OnboardingScreen";
+import HomeScreen from "./src/features/home/HomeScreenContent";
+import { BibleTabContent } from "./src/features/bible/BibleTabContent";
+import { MoreScreen } from "./src/features/more/moreScreen";
+import { SupportFeedbackScreen } from "./src/features/onboarding/profile/AccUtilities/SupportFeedbackScreen";
+import MyNotesTabContent from "./src/features/onboarding/profile/AccUtilities/MyNotes";
+import { Testimony } from "./src/features/onboarding/profile/AccUtilities/Testimony";
+import { FavoriteBooksScreen } from "./src/features/onboarding/profile/AccUtilities/FavoriteBooks";
+import { AboutAuthorScreen } from "./src/features/more/AboutAuthor";
+import FollowUsScreen from "./src/features/more/followUs";
+import SettingsScreen from "./src/features/more/Settings";
+import VersionScreen from "./src/features/more/Version";
+import PrivacyPolicyScreen from "./src/features/more/PrivacyPolicy";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import machairabot from "./assets/images/machairabot.png";
+import * as Linking from "expo-linking";
+import { executeGoogleSignIn } from "./src/features/onboarding/googleAuth";
+import * as WebBrowser from "expo-web-browser";
 SplashScreen.preventAutoHideAsync().catch(() => {});
-WebBrowser.maybeCompleteAuthSession(); 
-
+WebBrowser.maybeCompleteAuthSession();
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const DISK_USER_CACHE_KEY = '@machaira_authenticated_user_cache';
+const DISK_USER_CACHE_KEY = "@machaira_authenticated_user_cache";
 
 // ==========================================
 // STATIC & MEMOIZED SUB-SCREENS
 // ==========================================
-const CenterScreen = React.memo(({ title }) => (
-  <View style={styles.center}>
-    <AppText type="bold">{title}</AppText>
-  </View>
-));
-
-const AIChatScreen = React.memo(() => (
-  <View style={styles.aiCenter}>
-    <View style={styles.fallbackContainer}>
-      <Image source={machairabot} style={styles.aiLogo} resizeMode="contain" />
-      <AppText type="semiBold" style={styles.fallbackText}>
-        Machaira AI Chat coming soon...
-      </AppText>
+const CenterScreen = React.memo(({ title }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.center, { backgroundColor: colors.background }]}>
+      <AppText type="bold">{title}</AppText>
     </View>
-  </View>
-));
+  );
+});
+
+const AIChatScreen = React.memo(() => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.aiCenter, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.fallbackContainer,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <Image
+          source={machairabot}
+          style={[styles.aiLogo, { tintColor: colors.primary }]}
+          resizeMode="contain"
+        />
+        <AppText
+          type="semiBold"
+          style={[styles.fallbackText, { color: colors.textSecondary }]}
+        >
+          Machaira AI Chat coming soon...
+        </AppText>
+      </View>
+    </View>
+  );
+});
 
 const MemoizedMyNotes = React.memo(({ navigation }) => (
-  <MyNotesTabContent 
-    onBack={() => navigation.goBack()} 
-    onNavigateToCreateNote={() => console.log('Compose notes pipeline triggered...')} 
+  <MyNotesTabContent
+    onBack={() => navigation.goBack()}
+    onNavigateToCreateNote={() =>
+      console.log("Compose notes pipeline triggered...")
+    }
   />
 ));
 
 const MemoizedTestimony = React.memo(({ navigation }) => (
-  <Testimony 
-    onBack={() => navigation.goBack()} 
-    onNavigateToCreate={() => console.log('Create testimony context triggered...')} 
+  <Testimony
+    onBack={() => navigation.goBack()}
+    onNavigateToCreate={() =>
+      console.log("Create testimony context triggered...")
+    }
   />
 ));
 
@@ -74,150 +98,199 @@ const MemoizedFavoriteBooks = React.memo(({ navigation }) => (
   <FavoriteBooksScreen onBack={() => navigation.goBack()} />
 ));
 
-const MemoizedHomeScreen = React.memo(({ 
-  navigation, route, user, profileVisible, setProfileVisible, 
-  onNavigateToSupport, onNavigateToMenuOption, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount 
-}) => (
-  <View style={[styles.flexOne, { paddingTop: useSafeAreaInsets().top }]}>
-    <HomeScreen 
-      navigation={navigation}
-      route={route}
-      user={user} 
-      profileVisible={profileVisible} 
-      setProfileVisible={setProfileVisible} 
-      onNavigateToSupport={onNavigateToSupport} 
-      onNavigateToMenuOption={onNavigateToMenuOption}
-      onLogout={onLogout}
-      onTriggerLogin={onTriggerLogin}
-      onChangeAccount={onChangeAccount}
-      onDeleteAccount={onDeleteAccount}
-    />
-  </View>
-));
+const MemoizedHomeScreen = React.memo((props) => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={[styles.flexOne, { paddingTop: insets.top }]}>
+      <HomeScreen {...props} />
+    </View>
+  );
+});
 
 // ==========================================
 // CORE TAB NAVIGATION COMPONENT
 // ==========================================
-function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, onChangeAccount, onDeleteAccount }) {
+function BaseTabNavigator({
+  route,
+  navigation,
+  user,
+  onLogout,
+  onTriggerLogin,
+  onChangeAccount,
+  onDeleteAccount,
+}) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [profileVisible, setProfileVisible] = useState(false);
 
   const activeUserContext = useMemo(() => user, [user]);
 
-  const renderIcon = useCallback((IconComponent, focused, color) => (
-    <View style={styles.iconContainer}>
-      <IconComponent color={color} size={20} strokeWidth={focused ? 2.0 : 1.5} />
-      {focused && <View style={styles.minimalDot} />}
-    </View>
-  ), []);
+  const renderIcon = useCallback(
+    (IconComponent, focused, color) => (
+      <View style={styles.iconContainer}>
+        <IconComponent
+          color={color}
+          size={20}
+          strokeWidth={focused ? 2 : 1.5}
+        />
+        {focused && (
+          <View
+            style={[styles.minimalDot, { backgroundColor: colors.primary }]}
+          />
+        )}
+      </View>
+    ),
+    [colors],
+  );
 
-  const handleMenuOption = useCallback((targetId) => {
-    setProfileVisible(false);
-    if (targetId === 'notes' || targetId === 'Saved') {
-      navigation.navigate('MyNotes');
-    } else if (targetId === 'testimony') {
-      navigation.navigate('Testimony');
-    } else if (targetId === 'books') {
-      navigation.navigate('FavoriteBooks');
-    } else if (targetId === 'support') {
-      navigation.navigate('SupportFeedback');
-    }
-  }, [navigation]);
+  const handleMenuOption = useCallback(
+    (targetId) => {
+      setProfileVisible(false);
+
+      if (targetId === "notes" || targetId === "Saved") {
+        navigation.navigate("MyNotes");
+      } else if (targetId === "testimony") {
+        navigation.navigate("Testimony");
+      } else if (targetId === "books") {
+        navigation.navigate("FavoriteBooks");
+      } else if (targetId === "support") {
+        navigation.navigate("SupportFeedback");
+      }
+    },
+    [navigation],
+  );
 
   const handleSupportNavigation = useCallback(() => {
-    navigation.navigate('SupportFeedback');
+    navigation.navigate("SupportFeedback");
   }, [navigation]);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#ef4444', 
-        tabBarInactiveTintColor: '#94a3b8', 
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: styles.navLabel,
         tabBarStyle: [
-          styles.footer, 
-          { height: 64 + insets.bottom, paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }
+          styles.footer,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            height: 64 + insets.bottom,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          },
         ],
       }}
     >
-      <Tab.Screen 
+      <Tab.Screen
         name="Home"
         options={{
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => renderIcon(Home, focused, color)
+          tabBarIcon: ({ color, focused }) => renderIcon(Home, focused, color),
         }}
       >
         {(props) => (
-          <MemoizedHomeScreen 
+          <MemoizedHomeScreen
             {...props}
-            user={activeUserContext} 
-            profileVisible={profileVisible} 
-            setProfileVisible={setProfileVisible} 
+            user={activeUserContext}
+            profileVisible={profileVisible}
+            setProfileVisible={setProfileVisible}
             onLogout={onLogout}
             onTriggerLogin={onTriggerLogin}
             onChangeAccount={onChangeAccount}
             onDeleteAccount={onDeleteAccount}
-            onNavigateToSupport={handleSupportNavigation} 
+            onNavigateToSupport={handleSupportNavigation}
             onNavigateToMenuOption={handleMenuOption}
           />
         )}
       </Tab.Screen>
 
-      <Tab.Screen 
+      <Tab.Screen
         name="Bible"
         options={{
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => renderIcon(Book, focused, color)
+          tabBarIcon: ({ color, focused }) =>
+            renderIcon(Book, focused, color),
         }}
       >
-        {() => <View style={styles.flexOne}><BibleTabContent tabBarHeight={64 + insets.bottom} /></View>}
+        {() => (
+          <View style={styles.flexOne}>
+            <BibleTabContent tabBarHeight={64 + insets.bottom} />
+          </View>
+        )}
       </Tab.Screen>
 
-      <Tab.Screen 
-        name="AI_Chat" 
-        component={AIChatScreen} 
+      <Tab.Screen
+        name="AI_Chat"
+        component={AIChatScreen}
         options={{
-          headerShown: false,
           tabBarButton: (props) => (
-            <Pressable 
-              {...props} 
+            <Pressable
+              {...props}
               style={[
-                props.style, 
+                props.style,
                 styles.navButtonAI,
-                props.accessibilityState?.selected && styles.navButtonAIFocused
+                props.accessibilityState?.selected &&
+                  styles.navButtonAIFocused,
               ]}
-              accessibilityRole="button"
-              accessibilityLabel="Open Machaira AI Chat"
             >
-              <View style={[
-                styles.aiIconAnchor,
-                props.accessibilityState?.selected && styles.aiIconAnchorFocused
-              ]}>
-                <Image source={machairabot} style={styles.aiNavImage} resizeMode="contain" />
-                <AppText type="bold" numberOfLines={1} style={styles.aiButtonLabel}>
+              <View
+                style={[
+                  styles.aiIconAnchor,
+                  {
+                    backgroundColor: isDark ? "rgba(239,68,68,0.15)" : "#fef2f2",
+                  },
+                  props.accessibilityState?.selected && [
+                    styles.aiIconAnchorFocused,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(239,68,68,0.25)"
+                        : "#fee2e2",
+                      borderColor: colors.primary,
+                    },
+                  ],
+                ]}
+              >
+                <Image
+                  source={machairabot}
+                  style={[styles.aiNavImage, { tintColor: colors.primary }]}
+                  resizeMode="contain"
+                />
+                <AppText
+                  type="bold"
+                  numberOfLines={1}
+                  style={[styles.aiButtonLabel, { color: colors.primary }]}
+                >
                   Machaira AI
                 </AppText>
               </View>
             </Pressable>
           ),
-        }} 
+        }}
       />
-      
-      <Tab.Screen 
-        name="Library" 
-        options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(FolderHeart, focused, color) }}
+
+      <Tab.Screen
+        name="Library"
+        options={{
+          tabBarIcon: ({ color, focused }) =>
+            renderIcon(FolderHeart, focused, color),
+        }}
       >
         {() => <CenterScreen title="Library Screen" />}
       </Tab.Screen>
 
-      <Tab.Screen 
-          name="More" 
-          options={{ headerShown: false, tabBarIcon: ({ color, focused }) => renderIcon(LayoutGrid, focused, color) }}
-        >
-          {() => <CenterScreen title="More Screen" />}
-        </Tab.Screen>
-
+      <Tab.Screen
+        name="More"
+        options={{
+          tabBarIcon: ({ color, focused }) =>
+            renderIcon(LayoutGrid, focused, color),
+        }}
+      >
+        {() => (
+          <View style={styles.flexOne}>
+            <MoreScreen />
+          </View>
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -225,13 +298,28 @@ function BaseTabNavigator({ route, navigation, user, onLogout, onTriggerLogin, o
 const MemoizedBaseTabNavigator = React.memo(BaseTabNavigator);
 
 const linking = {
-  prefixes: ['machaira://', Linking.createURL('/')],
+  prefixes: ["machaira://", Linking.createURL("/")],
   config: {
     screens: {
-      MainTabs: 'auth-callback', 
+      MainTabs: "auth-callback",
     },
   },
 };
+
+function ThemeAwareNavigation({ children }) {
+  const { isDark, colors } = useTheme();
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background, 
+      card: colors.background,
+      text: colors.text,
+    },
+  };
+
+  return <NavigationContainer theme={navTheme}>{children}</NavigationContainer>;
+}
 
 // ==========================================
 // MASTER APPLICATION CONTAINER (ROOT)
@@ -242,16 +330,19 @@ export default function App() {
   const [authenticatedUser, setAuthenticatedUser] = useState(null);
 
   const [fontsLoaded] = useFonts({
-    'Montserrat-Regular': Montserrat_400Regular, 
-    'Montserrat-SemiBold': Montserrat_600SemiBold, 
-    'Montserrat-Bold': Montserrat_700Bold, 
-    'Montserrat-Black': Montserrat_900Black,
+    "Montserrat-Regular": Montserrat_400Regular,
+    "Montserrat-SemiBold": Montserrat_600SemiBold,
+    "Montserrat-Bold": Montserrat_700Bold,
+    "Montserrat-Black": Montserrat_900Black,
   });
 
   const writeProfileDiskCache = async (profileObj) => {
     try {
       if (profileObj) {
-        await AsyncStorage.setItem(DISK_USER_CACHE_KEY, JSON.stringify(profileObj));
+        await AsyncStorage.setItem(
+          DISK_USER_CACHE_KEY,
+          JSON.stringify(profileObj),
+        );
       }
     } catch (err) {
       console.warn("Disk writing write validation fault:", err);
@@ -261,34 +352,36 @@ export default function App() {
   const mapSupabaseUserToState = useCallback((user) => {
     const profileModel = {
       id: user.id,
-      name: user.user_metadata?.full_name || user.email?.split('@')[0] || "User Account",
+      name:
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "User Account",
       email: user.email,
-      photo: user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      isLoggedOut: false
+      photo:
+        user.user_metadata?.avatar_url ||
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      isLoggedOut: false,
     };
     setAuthenticatedUser(profileModel);
     writeProfileDiskCache(profileModel);
   }, []);
 
   const handleGlobalLogout = useCallback(() => {
-  // Purely a UI-level "logged out" flag. The real Supabase session
-  // stays alive in the background (Supabase keeps it fresh via
-  // autoRefreshToken), so "Continue as X" can resume instantly.
-  setAuthenticatedUser(prev => {
-    if (!prev) return null;
-    const closedState = { ...prev, isLoggedOut: true };
-    writeProfileDiskCache(closedState);
-    return closedState;
-  });
-}, []);
-
-
+    setAuthenticatedUser((prev) => {
+      if (!prev) return null;
+      const closedState = { ...prev, isLoggedOut: true };
+      writeProfileDiskCache(closedState);
+      return closedState;
+    });
+  }, []);
 
   const handleAccountDeletion = useCallback(async () => {
     try {
-      console.log("Processing secure account deletion for UID:", authenticatedUser?.id);
-      const { data, error } = await supabase.rpc('delete_user_account_trigger');
-      
+      console.log(
+        "Processing secure account deletion for UID:",
+        authenticatedUser?.id,
+      );
+      const { data, error } = await supabase.rpc("delete_user_account_trigger");
       if (error) throw new Error(error.message);
 
       console.log("Database confirmation received successfully:", data);
@@ -299,49 +392,48 @@ export default function App() {
       Alert.alert("Success", "Your profile has been permanently removed.");
     } catch (e) {
       console.warn("Error running account deletion flow:", e);
-      Alert.alert("Deletion Failed", `Server rejected data teardown request: ${e.message}`);
+      Alert.alert(
+        "Deletion Failed",
+        `Server rejected data teardown request: ${e.message}`,
+      );
     }
   }, [authenticatedUser, handleGlobalLogout]);
 
-// App.js
-const handleTriggerLogin = useCallback(async () => {
-  try {
-    // Don't touch SecureStore at all — the real Supabase session
-    // was never destroyed (see handleGlobalLogout below), so just
-    // recheck it's still alive and self-refreshed.
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      mapSupabaseUserToState(session.user); // flips isLoggedOut back to false, updates cache
-      return { resumed: true };
+  const handleTriggerLogin = useCallback(async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        mapSupabaseUserToState(session.user);
+        return { resumed: true };
+      }
+
+      const result = await executeGoogleSignIn();
+      if (
+        result?.error &&
+        result.error !== "Sign-in window dismissed by user."
+      ) {
+        Alert.alert("Authentication Failure", result.error);
+      }
+      return { resumed: false, success: !!result?.success };
+    } catch (e) {
+      console.warn("Error resuming session:", e);
+      return { resumed: false, success: false };
     }
-
-    // Only reach here if the session is truly gone (expired/revoked).
-    const result = await executeGoogleSignIn();
-    if (result?.error && result.error !== 'Sign-in window dismissed by user.') {
-      Alert.alert('Authentication Failure', result.error);
-    }
-    return { resumed: false, success: !!result?.success };
-  } catch (e) {
-    console.warn("Error resuming session:", e);
-    return { resumed: false, success: false };
-  }
-}, [mapSupabaseUserToState]);
-
-
+  }, [mapSupabaseUserToState]);
 
   const handleSwitchToNewAccount = useCallback(async () => {
-  try {
-    await supabase.auth.signOut({ scope: 'local' }); // discard current session, they want a different account
-  } catch (e) {
-    console.warn('Error clearing session before account switch:', e);
-  }
-  const result = await executeGoogleSignIn({ forceAccountPicker: true });
-  if (result?.error && result.error !== 'Sign-in window dismissed by user.') {
-    Alert.alert('Authentication Failure', result.error);
-  }
-}, []);
-
-  
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch (e) {
+      console.warn("Error clearing session before account switch:", e);
+    }
+    const result = await executeGoogleSignIn({ forceAccountPicker: true });
+    if (result?.error && result.error !== "Sign-in window dismissed by user.") {
+      Alert.alert("Authentication Failure", result.error);
+    }
+  }, []);
 
   useEffect(() => {
     let authSubscription;
@@ -354,7 +446,9 @@ const handleTriggerLogin = useCallback(async () => {
           setAuthenticatedUser(parsedUser);
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (session?.user) {
           mapSupabaseUserToState(session.user);
           setHasCompletedOnboarding(true);
@@ -364,13 +458,14 @@ const handleTriggerLogin = useCallback(async () => {
 
         const { data } = supabase.auth.onAuthStateChange((event, session) => {
           console.log(`Supabase Auth Transaction Event: ${event}`);
-          
           if (session?.user) {
             mapSupabaseUserToState(session.user);
             setHasCompletedOnboarding(true);
-          } else if (event === 'SIGNED_OUT') {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            setAuthenticatedUser(prev => {
+          } else if (event === "SIGNED_OUT") {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success,
+            ).catch(() => {});
+            setAuthenticatedUser((prev) => {
               if (!prev) return null;
               const closedState = { ...prev, isLoggedOut: true };
               writeProfileDiskCache(closedState);
@@ -378,7 +473,6 @@ const handleTriggerLogin = useCallback(async () => {
             });
           }
         });
-        
         authSubscription = data?.subscription;
       } catch (e) {
         console.warn("Storage runtime initialization error:", e);
@@ -401,21 +495,23 @@ const handleTriggerLogin = useCallback(async () => {
   }, [appIsReady, fontsLoaded]);
 
   const handleExploreAsGuest = useCallback(() => {
-    setAuthenticatedUser(null); 
+    setAuthenticatedUser(null);
     setHasCompletedOnboarding(true);
   }, []);
 
-  const handleAuthSuccess = useCallback((data) => { 
-    if (data?.user) {
-      mapSupabaseUserToState(data.user);
-      setHasCompletedOnboarding(true);
-    }
-  }, [mapSupabaseUserToState]);
-
+  const handleAuthSuccess = useCallback(
+    (data) => {
+      if (data?.user) {
+        mapSupabaseUserToState(data.user);
+        setHasCompletedOnboarding(true);
+      }
+    },
+    [mapSupabaseUserToState],
+  );
 
   useEffect(() => {
-      console.log("Current Redirect URL:", Linking.createURL('auth-callback'));
-    }, []);  
+    console.log("Current Redirect URL:", Linking.createURL("auth-callback"));
+  }, []);
 
   if (!appIsReady || !fontsLoaded) {
     return null;
@@ -424,44 +520,76 @@ const handleTriggerLogin = useCallback(async () => {
   return (
     <SafeAreaProvider>
       <View style={styles.flexOne} onLayout={onLayoutRootView}>
-        <NavigationContainer linking={linking}>
-          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-          
-          <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_bottom' }}>
-            {!hasCompletedOnboarding ? (
-              <Stack.Screen name="Onboarding">
-                {() => (
-                  <OnboardingScreen 
-                    onExploreAsGuest={handleExploreAsGuest} 
-                    onAuthSuccess={handleAuthSuccess} 
-                    isReturningFromGuest={!!authenticatedUser?.isLoggedOut}
-                    savedUserContext={authenticatedUser || null}
-                  />
-                )}
-              </Stack.Screen>
-            ) : (
-              <Stack.Group>
-                <Stack.Screen name="MainTabs">
+        <ThemeProvider>
+          <ThemeAwareNavigation>
+            <StatusBar barStyle="default" />
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                animation: "slide_from_bottom",
+              }}
+            >
+              {!hasCompletedOnboarding ? (
+                <Stack.Screen name="Onboarding">
                   {(props) => (
-                    <MemoizedBaseTabNavigator 
-                      {...props} 
-                      user={authenticatedUser} 
-                      onLogout={handleGlobalLogout} 
-                      onTriggerLogin={handleTriggerLogin}
-                      onChangeAccount={handleSwitchToNewAccount}
-                      onDeleteAccount={handleAccountDeletion}
+                    <OnboardingScreen
+                      {...props}
+                      onExploreAsGuest={handleExploreAsGuest}
+                      onAuthSuccess={handleAuthSuccess}
+                      isReturningFromGuest={!!authenticatedUser?.isLoggedOut}
+                      savedUserContext={authenticatedUser || null}
                     />
                   )}
                 </Stack.Screen>
-
-                <Stack.Screen name="SupportFeedback" component={SupportFeedbackScreen} />
-                <Stack.Screen name="MyNotes" component={MemoizedMyNotes} />
-                <Stack.Screen name="Testimony" component={MemoizedTestimony} />
-                <Stack.Screen name="FavoriteBooks" component={MemoizedFavoriteBooks} />
-              </Stack.Group>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
+              ) : (
+                <React.Fragment>
+                  <Stack.Screen name="MainTabs">
+                    {(props) => (
+                      <MemoizedBaseTabNavigator
+                        {...props}
+                        user={authenticatedUser}
+                        onLogout={handleGlobalLogout}
+                        onTriggerLogin={handleTriggerLogin}
+                        onChangeAccount={handleSwitchToNewAccount}
+                        onDeleteAccount={handleAccountDeletion}
+                      />
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen
+                    name="SupportFeedback"
+                    component={SupportFeedbackScreen}
+                  />
+                  <Stack.Screen name="MyNotes" component={MemoizedMyNotes} />
+                  <Stack.Screen
+                    name="Testimony"
+                    component={MemoizedTestimony}
+                  />
+                  <Stack.Screen
+                    name="FavoriteBooks"
+                    component={MemoizedFavoriteBooks}
+                  />
+                  <Stack.Screen
+                    name="AboutAuthor"
+                    component={AboutAuthorScreen}
+                  />
+                  <Stack.Screen name="FollowUs" component={FollowUsScreen} />
+                  <Stack.Screen name="Settings">
+                    {(props) => (
+                      <SettingsScreen
+                        {...props}
+                        onLogout={handleGlobalLogout}
+                        onDeleteAccount={handleAccountDeletion}
+                        user={authenticatedUser}
+                      />
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                  <Stack.Screen name="Version" component={VersionScreen} />
+                </React.Fragment>
+              )}
+            </Stack.Navigator>
+          </ThemeAwareNavigation>
+        </ThemeProvider>
       </View>
     </SafeAreaProvider>
   );
@@ -469,19 +597,98 @@ const handleTriggerLogin = useCallback(async () => {
 
 const styles = StyleSheet.create({
   flexOne: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
-  aiCenter: { flex: 1, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: '#f8fafc' },
-  fallbackContainer: { backgroundColor: '#ffffff', borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
-  fallbackText: { color: '#64748b', fontSize: 14, marginTop: 8 },
-  aiLogo: { width: 64, height: 64, tintColor: '#ef4444', marginBottom: 12 },
-  footer: { flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', position: 'absolute', bottom: 0, left: 0, right: 0, overflow: 'visible', ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.03, shadowRadius: 10 }, android: { elevation: 8 } }) },
-  iconContainer: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  minimalDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#ef4444', position: 'absolute', bottom: -6 },
-  navButtonAI: { justifyContent: 'flex-start', alignItems: 'center' },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+  },
+  aiCenter: {
+    flex: 1,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+  },
+  fallbackContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+  },
+  fallbackText: { color: "#64748b", fontSize: 14, marginTop: 8 },
+  aiLogo: { width: 64, height: 64, tintColor: "#ef4444", marginBottom: 12 },
+  footer: {
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    overflow: "visible",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0f172a",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 10,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  iconContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  minimalDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#ef4444",
+    position: "absolute",
+    bottom: -6,
+  },
+  navButtonAI: { justifyContent: "flex-start", alignItems: "center" },
   navButtonAIFocused: { transform: [{ scale: 1.05 }] },
-  aiIconAnchor: { width: 64, height: 54, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#ef4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 4 }, android: { elevation: 4 } }) },
-  aiIconAnchorFocused: { backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#ef4444' },
-  aiNavImage: { width: 22, height: 22, tintColor: '#ef4444', marginBottom: 2 },
-  aiButtonLabel: { color: '#ef4444', fontSize: 9, letterSpacing: -0.2, textAlign: 'center', fontWeight: '700' },
-  navLabel: { fontSize: 10, marginTop: 4, textAlign: 'center', fontWeight: '600' }
+  aiIconAnchor: {
+    width: 64,
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#ef4444",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  aiIconAnchorFocused: {
+    backgroundColor: "#fee2e2",
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  aiNavImage: { width: 22, height: 22, tintColor: "#ef4444", marginBottom: 2 },
+  aiButtonLabel: {
+    color: "#ef4444",
+    fontSize: 9,
+    letterSpacing: -0.2,
+    textAlign: "center",
+    fontWeight: "700",
+  },
+  navLabel: {
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: "center",
+    fontWeight: "600",
+  },
 });

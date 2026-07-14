@@ -1,337 +1,148 @@
-import React, { useRef, useEffect } from 'react';
+import React, { memo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { AppText } from '../../components/AppText';
 import { ASH } from './Constants';
 import { cleanVerseText } from './Utils';
 
-const DOUBLE_TAP_DELAY = 250;
-
-const VerseRow = ({
+const VerseRow = memo(({
   v,
-  onSingleTap,
-  onDoubleTap,
   onLayout,
-
+  onSingleTap,
+  onLongPress,
   isSelected,
   isNavHighlight,
   isHighlighted,
   isUnderlined,
   hasNote,
+  isFocused,
   isSaved,
-
   fontSizeScale,
   dynamicLineHeight,
   dynamicVerseSpacing,
-
   highlightColor,
 }) => {
 
-  const lastTapRef = useRef(null);
-  const singleTapTimeoutRef = useRef(null);
-
-
-  const handlePress = () => {
-
-    const now = Date.now();
-
-
-    if (
-      lastTapRef.current &&
-      now - lastTapRef.current < DOUBLE_TAP_DELAY
-    ) {
-
-      if (singleTapTimeoutRef.current) {
-        clearTimeout(singleTapTimeoutRef.current);
-      }
-
-      lastTapRef.current = null;
-
-      onDoubleTap?.(v);
-
-      return;
-    }
-
-
-    lastTapRef.current = now;
-
-
-    singleTapTimeoutRef.current = setTimeout(() => {
-
-      lastTapRef.current = null;
-
-      onSingleTap?.(v);
-
-    }, DOUBLE_TAP_DELAY);
-
-  };
-
-
-
-  useEffect(() => {
-
-    return () => {
-
-      if (singleTapTimeoutRef.current) {
-        clearTimeout(singleTapTimeoutRef.current);
-      }
-
-    };
-
-  }, []);
-
-
-
   return (
-
     <Pressable
-
-      onPress={handlePress}
-
-      onLayout={onLayout}
-
-      android_ripple={null}
-
+      onPress={() => onSingleTap?.(v)}
+      onLongPress={() => onLongPress?.(v)}
+      delayLongPress={300}
+      onLayout={(event) => {
+        onLayout(event.nativeEvent.layout.y);
+      }}
+      android_ripple={{ color: 'rgba(53,42,72,0.1)' }}
       style={[
-
         styles.verseLineBlockWrapper,
-
-
-        // temporary chapter/verse navigation highlight
-        isNavHighlight &&
-        styles.navigationHighlight,
-
-
-        // selection highlight from action sheet range
-        isSelected &&
-        styles.selectionHighlight,
-
-
-        // permanent color highlight fallback
-        isHighlighted &&
-        !highlightColor &&
-        styles.savedHighlight,
-
-
-        {
-          marginBottom: dynamicVerseSpacing,
-        },
-
-
-        highlightColor && {
-          backgroundColor: highlightColor,
-        },
-
+        isFocused && styles.spotlightHighlight,
+        isNavHighlight && styles.navigationHighlight,
+        isSelected && styles.selectionHighlight,
+        isHighlighted && !highlightColor && styles.savedHighlight,
+        { marginBottom: dynamicVerseSpacing },
+        highlightColor && { backgroundColor: highlightColor },
       ]}
-
     >
-
-
-
-      <AppText
-
-        style={[
-
-          styles.miniVerseSuperscriptIndex,
-
-          {
-            fontSize: Math.max(10, fontSizeScale - 6),
-          },
-
-        ]}
-
-      >
-
+      <AppText style={[styles.miniVerseSuperscriptIndex, { fontSize: Math.max(10, fontSizeScale - 6) }]}>
         {v.verse}
-
       </AppText>
 
-
-
       <View style={styles.verseTextContainer}>
-
-
-        <AppText
-
-          style={[
-
-            styles.coreReadingVerseString,
-
-
-            {
-              fontSize: fontSizeScale,
-              lineHeight: dynamicLineHeight,
-            },
-
-
-            // underline only comes from parent state
-            isUnderlined && styles.underlinedVerse,
-
-
-          ]}
-
-        >
-
+        <AppText style={[
+          styles.coreReadingVerseString, 
+          { fontSize: fontSizeScale, lineHeight: dynamicLineHeight }, 
+          isUnderlined && styles.underlinedVerse
+        ]}>
           {cleanVerseText(v.text)}
-
         </AppText>
 
-
-
-        {
-          (hasNote || isSaved) && (
-
-            <View style={styles.indicatorPillContainer}>
-
-
-              {
-                isSaved && (
-
-                  <View
-                    style={[
-                      styles.indicatorPill,
-                      styles.savedPill,
-                    ]}
-                  >
-
-                    <AppText style={styles.indicatorPillText}>
-                      Saved
-                    </AppText>
-
-                  </View>
-
-                )
-              }
-
-
-
-              {
-                hasNote && (
-
-                  <View
-                    style={[
-                      styles.indicatorPill,
-                      styles.notePill,
-                    ]}
-                  >
-
-                    <AppText style={styles.indicatorPillText}>
-                      Note
-                    </AppText>
-
-                  </View>
-
-                )
-              }
-
-
-            </View>
-
-          )
-        }
-
-
+        {(hasNote || isSaved) && (
+          <View style={styles.indicatorPillContainer}>
+            {isSaved && (
+              <View style={[styles.indicatorPill, styles.savedPill]}>
+                <AppText style={styles.indicatorPillText}>Saved</AppText>
+              </View>
+            )}
+            {hasNote && (
+              <View style={[styles.indicatorPill, styles.notePill]}>
+                <AppText style={styles.indicatorPillText}>Note</AppText>
+              </View>
+            )}
+          </View>
+        )}
       </View>
-
-
     </Pressable>
-
   );
-
-};
-
-
+});
 
 const styles = StyleSheet.create({
 
-  verseLineBlockWrapper:{
-    flexDirection:'row',
-    alignItems:'flex-start',
-    paddingVertical:6,
-    paddingHorizontal:8,
-    borderRadius:10,
+  verseLineBlockWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 10,
   },
-
-
-  navigationHighlight:{
-    backgroundColor:'rgba(53,42,72,0.16)',
-    borderRadius:10,
+  miniVerseSuperscriptIndex: {
+    width: 28,
+    minWidth: 28,
+    color: '#352a48',
+    fontWeight: '700',
+    opacity: 0.45,
+    marginTop: 1,
+    flexShrink: 0,
   },
-
-
-  selectionHighlight:{
-    backgroundColor:'rgba(53,42,72,0.10)',
-    borderRadius:10,
+  verseTextContainer: {
+    flex: 1,
+    paddingLeft: 6,
   },
-
-
-  savedHighlight:{
-    backgroundColor:ASH.highlightFill,
-    borderRadius:10,
+  coreReadingVerseString: {
+    color: '#09090b',
+    textAlign: 'left',
+    fontWeight: '400',
   },
-
-
-  miniVerseSuperscriptIndex:{
-    width:28,
-    minWidth:28,
-    color:'#352a48',
-    fontWeight:'700',
-    opacity:0.45,
-    marginTop:1,
-    flexShrink:0,
+  underlinedVerse: {
+    textDecorationLine: 'underline',
+    textDecorationColor: '#352a48',
+    textDecorationStyle: 'solid',
   },
-
-
-  verseTextContainer:{
-    flex:1,
-    paddingLeft:6,
+  indicatorPillContainer: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
   },
-
-
-  coreReadingVerseString:{
-    color:'#09090b',
-    textAlign:'left',
-    fontWeight:'400',
+  indicatorPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-
-
-  underlinedVerse:{
-    textDecorationLine:'underline',
-    textDecorationColor:'#352a48',
-    textDecorationStyle:'solid',
+  savedPill: {
+    backgroundColor: '#ef4444',
   },
-
-
-  indicatorPillContainer:{
-    flexDirection:'row',
-    gap:6,
-    marginTop:4,
+  notePill: {
+    backgroundColor: '#352a48',
   },
-
-
-  indicatorPill:{
-    paddingHorizontal:6,
-    paddingVertical:2,
-    borderRadius:4,
+  indicatorPillText: {
+    fontSize: 9,
+    color: '#ffffff',
+    fontWeight: '700',
   },
-
-
-  savedPill:{
-    backgroundColor:'#ef4444',
+  navigationHighlight: {
+    backgroundColor: 'rgba(53,42,72,0.16)',
+    borderRadius: 10,
   },
-
-
-  notePill:{
-    backgroundColor:'#352a48',
+  selectionHighlight: {
+    backgroundColor: 'rgba(53,42,72,0.10)',
+    borderRadius: 10,
   },
-
-
-  indicatorPillText:{
-    fontSize:9,
-    color:'#ffffff',
-    fontWeight:'700',
+  savedHighlight: {
+    backgroundColor: ASH.highlightFill,
+    borderRadius: 10,
   },
-
+  spotlightHighlight: {
+    backgroundColor: '#68518e',
+    borderRadius: 10,
+    marginVertical: 4,
+  },
 });
-
 
 export default VerseRow;
