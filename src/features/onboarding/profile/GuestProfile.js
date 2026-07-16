@@ -11,7 +11,7 @@ const UTILITIES_ITEMS = [
   { id: 'notes', label: 'My Notes', icon: Notebook, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
   { id: 'testimony', label: 'Testimony', icon: MicVocal, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
   { id: 'books', label: 'Favourite Books', icon: Heart, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
-  { id: 'support', label: 'Support / Feedback', icon: MessageSquareWarning, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
+  { id: 'support', label: 'FAQ', icon: MessageSquareWarning, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
   { id: 'share', label: 'Share App', icon: Share2, color: '#52525b', bgColor: 'rgba(244, 244, 245, 0.8)' },
 ];
 

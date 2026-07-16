@@ -23,7 +23,7 @@ export default function VersionScreen({ navigation }) {
       <View style={styles.header}>
         <Pressable 
           onPress={() => navigation.goBack()} 
-          style={[styles.backButtonContainer, { backgroundColor: colors.backBtnBg }]}
+          style={[styles.backButtonContainer]}
         >
           <ChevronLeft size={24} color={colors.backBtnIcon} />
         </Pressable>
@@ -67,7 +67,7 @@ const ActionRow = ({ icon: Icon, title, onPress, colors }) => (
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20 },
-  backButtonContainer: { padding: 8, borderRadius: 14, marginRight: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
+  backButtonContainer: { width: 44, height: 44, borderRadius: 22,  backgroundColor: '#f1f5f9',  alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   title: { fontSize: 22 },
   scroll: { padding: 20 },
   hero: { alignItems: 'center', marginVertical: 40 },

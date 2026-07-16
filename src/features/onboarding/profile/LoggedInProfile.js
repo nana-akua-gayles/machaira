@@ -21,7 +21,7 @@ const UTILITIES_ITEMS = [
   { id: 'notes', label: 'My Notes', icon: Notebook, color: '#4b5563', bgColor: '#f3f4f6' },
   { id: 'testimony', label: 'Testimony', icon: MicVocal, color: '#4b5563', bgColor: '#f3f4f6' },
   { id: 'books', label: 'Favourite Books', icon: Heart, color: '#4b5563', bgColor: '#f3f4f6' },
-  { id: 'support', label: 'Support / Feedback', icon: MessageSquareWarning, color: '#4b5563', bgColor: '#f3f4f6' },
+  { id: 'support', label: 'FAQ', icon: MessageSquareWarning, color: '#4b5563', bgColor: '#f3f4f6' },
   { id: 'share', label: 'Share App', icon: Share2, color: '#4b5563', bgColor: '#f3f4f6' },
 ];
 
@@ -221,7 +221,6 @@ const NavMenuOption = ({ icon: Icon, color, bgColor, label, description, onPress
 
 // ==========================================
 // SCROLLABLE SCREEN CONTENT COMPONENT
-// Now owns its own alert state — no setAlertConfig prop needed.
 // ==========================================
 export const LoggedInProfileDashboardContent = ({ user, isLoggedOut = false, onLogin, onLogout, onChangeAccount, onDeleteAccount, onNavigateToSupport, onNavigateToMenuOption, onClose }) => {
   const insets = useSafeAreaInsets();
@@ -231,8 +230,6 @@ export const LoggedInProfileDashboardContent = ({ user, isLoggedOut = false, onL
   const handleProfilePress = useCallback(() => {
     if (!isLoggedOut) return;
 
-    // Trigger the alert locally — this component isn't nested inside any
-    // other Modal, so there's no stacking concern here.
     setAlertConfig({
       visible: true,
       avatarUri: user.photo,

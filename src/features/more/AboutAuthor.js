@@ -112,47 +112,22 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 34, color: '#ffffff' },
   heroTitle: { fontSize: 16, color: '#f1f5f9' },
   
-  // Scrolling area
   scrollContent: { padding: 24, paddingBottom: 40 },
   mandateText: { fontSize: 17, lineHeight: 28, color: '#0f172a', marginBottom: 32 },
   sectionTitle: { fontSize: 18, color: '#0f172a', textTransform: 'uppercase', marginBottom: 16 },
   accentLine: { height: 3, width: 40, backgroundColor: '#ef4444', marginTop: 6, borderRadius: 2 },
   bodyText: { fontSize: 16, lineHeight: 26, color: '#475569', marginBottom: 16 },
   
-  // Dedicated Family Section (Much more prominent)
-  familySection: { 
-    marginTop: 40, 
-    padding: 24, 
-    backgroundColor: '#fff1f2', // Soft red tint to match your brand
-    borderRadius: 20,
-    alignItems: 'center'
-  },
+  familySection: { marginTop: 40, padding: 24, backgroundColor: '#fff1f2', borderRadius: 20, alignItems: 'center'},
   divider: { height: 2, width: 60, backgroundColor: '#ef4444', marginBottom: 16 },
   familyHeader: { fontSize: 20, color: '#991b1b', marginBottom: 8 },
   familyBody: { fontSize: 16, lineHeight: 26, color: '#451a03', textAlign: 'center', fontStyle: 'italic' },
 
-  // Grid/Cards for appetizing impact points
   impactGrid: { gap: 12, marginBottom: 24 },
-  impactCard: { 
-    backgroundColor: '#f8fafc', 
-    borderRadius: 14, 
-    padding: 16, 
-    flexDirection: 'row', 
-    borderWidth: 1, 
-    borderColor: '#f1f5f9' 
-  },
+  impactCard: { backgroundColor: '#f8fafc', borderRadius: 14, padding: 16, flexDirection: 'row', borderWidth: 1, borderColor: '#f1f5f9' },
   cardAccent: { width: 4, backgroundColor: '#ef4444', borderRadius: 2, marginRight: 12 },
   cardText: { flex: 1, fontSize: 15, lineHeight: 22, color: '#334155' },
-  
-  // Devotional Box Styling
-  devotionalBox: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fee2e2',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
+   devotionalBox: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fee2e2', borderRadius: 16, padding: 20, marginBottom: 24,},
   devotionalText: { fontSize: 16, lineHeight: 24, color: '#991b1b', textAlign: 'center' },
   italicHighlight: { fontStyle: 'italic', color: '#ef4444' },
 });

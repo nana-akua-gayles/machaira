@@ -87,16 +87,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
-  backButtonContainer: { 
-    padding: 8, 
-    borderRadius: 14, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-      android: { elevation: 3 }
-    })
-  },
+  backButtonContainer: { width: 44, height: 44, borderRadius: 22,  backgroundColor: '#f1f5f9',  alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   headerTitle: { fontSize: 20, marginLeft: 15 },
   scroll: { paddingHorizontal: 24, paddingBottom: 60 },
   date: { fontSize: 15, marginBottom: 32 },

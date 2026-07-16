@@ -9,7 +9,6 @@ const SettingRow = ({ icon: Icon, title, onPress, type = 'action', value, onValu
   <TouchableOpacity 
     style={styles.row} 
     onPress={onPress} 
-    // Enabled if it's an action with an onPress, or if it's a toggle
     disabled={type === 'action' ? !onPress : false}
   >
     <View style={styles.rowLeft}>
@@ -38,7 +37,7 @@ const SettingRow = ({ icon: Icon, title, onPress, type = 'action', value, onValu
   </TouchableOpacity>
 );
 
-export default function SettingsScreen({ navigation, onLogout, onDeleteAccount }) {
+export default function SettingsScreen({ navigation }) {
   const { isDark, toggleTheme } = useTheme();  
   const [isNotificationsEnabled, setIsNotificationsEnabled] = React.useState(true);
 
@@ -56,11 +55,10 @@ export default function SettingsScreen({ navigation, onLogout, onDeleteAccount }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View style={styles.header}>
         <Pressable 
           onPress={() => navigation.goBack()} 
-          style={[styles.backButtonContainer, { backgroundColor: colors.backBtnBg }]}
+          style={[styles.backButtonContainer]}
           android_ripple={{ color: isDark ? '#ffffff10' : '#00000010', borderless: true }}
         >
           <ChevronLeft size={24} color={colors.backBtnIcon} />
@@ -81,26 +79,13 @@ export default function SettingsScreen({ navigation, onLogout, onDeleteAccount }
           colors={colors} isDark={isDark} icon={Moon} title="Dark Mode" 
           type="toggle" value={isDark} onValueChange={toggleTheme} 
         />
-        <SettingRow colors={colors} isDark={isDark} icon={Mail} title="Contact Support" onPress={() => {}} />
+
+
+        <AppText style={[styles.groupLabel, { color: colors.subText }]}>About</AppText>
         <SettingRow colors={colors} isDark={isDark} icon={ShieldCheck} title="Privacy Policy" onPress={() => navigation.navigate('PrivacyPolicy')} />
         <SettingRow colors={colors} isDark={isDark} icon={Info} title={`Version ${Application.nativeApplicationVersion}`} onPress={() => navigation.navigate('Version')} />
+        <SettingRow colors={colors} isDark={isDark} icon={Mail} title="Contact Support" onPress={() => navigation.navigate('ContactSupport')} />
 
-        <AppText style={[styles.groupLabel, { color: colors.subText }]}>Account</AppText>
-        
-        <SettingRow colors={colors} isDark={isDark} icon={LogOut} title="Sign Out" onPress={onLogout} />
-        <SettingRow
-          colors={colors} isDark={isDark} icon={Trash2} title="Delete Account" destructive 
-          onPress={() => {
-            Alert.alert(
-              "Delete Account",
-              "This action is permanent and will remove all your data. Are you sure?",
-              [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: onDeleteAccount }
-              ]
-            );
-          }} 
-        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -109,15 +94,7 @@ export default function SettingsScreen({ navigation, onLogout, onDeleteAccount }
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20 },
-  backButtonContainer: { 
-    padding: 8, 
-    borderRadius: 14, 
-    marginRight: 15,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-      android: { elevation: 3 }
-    })
-  },
+  backButtonContainer: { width: 44, height: 44, borderRadius: 22,  backgroundColor: '#f1f5f9',  alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   title: { fontSize: 22 },
   scroll: { padding: 20 },
   groupLabel: { fontSize: 13, marginTop: 24, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },

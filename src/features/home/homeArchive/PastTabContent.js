@@ -61,15 +61,10 @@ export const PastTabContent = () => {
   return (
     <View style={styles.pastContainer}>
       <View
-        style={[
-          styles.streakBanner,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
+        style={[ styles.streakBanner, { backgroundColor: colors.card, borderColor: colors.border },]}>
         <View style={styles.streakLeft}>
           <View style={[styles.flameCircle, { backgroundColor: softTint }]}>
-            <Flame color={colors.primary} size={18} fill={colors.primary} />
-          </View>
+          <AppText type="bold" style={[styles.streakCountText, { color: colors.primary }]}>🔥</AppText></View>
           <View>
             <AppText type="bold" style={[styles.streakTitle, { color: colors.text }]}>
               7-Day Devotional Streak
@@ -78,11 +73,6 @@ export const PastTabContent = () => {
               You're on fire! Keep feeding your spirit.
             </AppText>
           </View>
-        </View>
-        <View style={[styles.streakCountBadge, { backgroundColor: softTint }]}>
-          <AppText type="bold" style={[styles.streakCountText, { color: colors.primary }]}>
-            🔥 7
-          </AppText>
         </View>
       </View>
 
@@ -101,37 +91,18 @@ export const PastTabContent = () => {
 
 const styles = StyleSheet.create({
   pastContainer: { width: '100%' },
-  
-  streakBanner: { 
-    borderRadius: 16, 
-    padding: 14, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    marginBottom: 20,
-    borderWidth: 1,
-    elevation: 2, 
-    shadowColor: '#0f172a', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.04, 
-    shadowRadius: 6 
-  },
-  streakLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  streakBanner: { borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20,
+    borderWidth: 1, elevation: 2, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, 
+    shadowRadius: 6 },
+  streakLeft: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   flameCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   streakTitle: { fontSize: 13 },
   streakSubtitle: { fontSize: 11, marginTop: 1 },
-  streakCountBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  streakCountText: { fontSize: 13 },
-    masonryGrid: { flexDirection: 'row', width: '100%', gap: 12 },
+  masonryGrid: { flexDirection: 'row', width: '100%', gap: 12 },
   gridColumn: { flex: 1, flexDirection: 'column', gap: 12 },
   card: { flex: 1, borderRadius: 20, overflow: 'hidden', borderWidth: 1, elevation: 2, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8 },
   cardPressed: { transform: [{ scale: 0.98 }], opacity: 0.95 },
-  isolatedImageContainer: { 
-    width: '100%', 
-    aspectRatio: 1.75,
-    overflow: 'hidden',
-    borderBottomWidth: 1,
-  },
+  isolatedImageContainer: { width: '100%', aspectRatio: 1.75, overflow: 'hidden', borderBottomWidth: 1,},
   pureCardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   cardContent: { padding: 12, flex: 1, justifyContent: 'space-between' },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },

@@ -83,12 +83,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20 },
-  backButtonContainer: { backgroundColor: '#fff', padding: 8, borderRadius: 14, marginRight: 15,
-...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-      android: { elevation: 3 }
-    })
-   },
+  backButtonContainer: { width: 44, height: 44, borderRadius: 22,  backgroundColor: '#f1f5f9',  alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   title: { fontSize: 22, color: '#0f172a' },
   scriptureContainer: { paddingHorizontal: 20, paddingBottom: 20, alignItems: 'center' },
   scriptureRef: { fontSize: 14, color: '#64748b', marginBottom: 6, letterSpacing: 1 },

@@ -10,13 +10,14 @@ import { Home, Book, ShoppingBag, FolderHeart, LayoutGrid,} from "lucide-react-n
 import { useFonts, Montserrat_400Regular, Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_900Black,} from "@expo-google-fonts/montserrat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from "./src/config/supabaseClient";
 import { AppText } from "./src/components/AppText";
 import { OnboardingScreen } from "./src/features/onboarding/OnboardingScreen";
 import HomeScreen from "./src/features/home/HomeScreenContent";
 import { BibleTabContent } from "./src/features/bible/BibleTabContent";
 import { MoreScreen } from "./src/features/more/moreScreen";
+import { LibraryScreen } from "./src/features/Library/library";
 import { SupportFeedbackScreen } from "./src/features/onboarding/profile/AccUtilities/SupportFeedbackScreen";
 import MyNotesTabContent from "./src/features/onboarding/profile/AccUtilities/MyNotes";
 import { Testimony } from "./src/features/onboarding/profile/AccUtilities/Testimony";
@@ -26,6 +27,10 @@ import FollowUsScreen from "./src/features/more/followUs";
 import SettingsScreen from "./src/features/more/Settings";
 import VersionScreen from "./src/features/more/Version";
 import PrivacyPolicyScreen from "./src/features/more/PrivacyPolicy";
+import { ContactSupportScreen } from "./src/features/more/ContactSupport";
+import { AudioScreen } from "./src/features/Library/Audio";
+import { ArticleDetailsScreen } from "./src/features/Library/ArticleDetailsScreen";
+import { PartnerScreen } from "./src/features/more/partner";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import machairabot from "./assets/images/machairabot.png";
 import * as Linking from "expo-linking";
@@ -36,6 +41,7 @@ WebBrowser.maybeCompleteAuthSession();
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+const queryClient = new QueryClient();
 const DISK_USER_CACHE_KEY = "@machaira_authenticated_user_cache";
 
 // ==========================================
@@ -275,7 +281,11 @@ function BaseTabNavigator({
             renderIcon(FolderHeart, focused, color),
         }}
       >
-        {() => <CenterScreen title="Library Screen" />}
+        {() => (
+          <View style={styles.flexOne}>
+            <LibraryScreen />
+          </View>
+        )}
       </Tab.Screen>
 
       <Tab.Screen
@@ -519,6 +529,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
       <View style={styles.flexOne} onLayout={onLayoutRootView}>
         <ThemeProvider>
           <ThemeAwareNavigation>
@@ -573,24 +584,20 @@ export default function App() {
                     component={AboutAuthorScreen}
                   />
                   <Stack.Screen name="FollowUs" component={FollowUsScreen} />
-                  <Stack.Screen name="Settings">
-                    {(props) => (
-                      <SettingsScreen
-                        {...props}
-                        onLogout={handleGlobalLogout}
-                        onDeleteAccount={handleAccountDeletion}
-                        user={authenticatedUser}
-                      />
-                    )}
-                  </Stack.Screen>
+                  <Stack.Screen name="Settings" component={SettingsScreen} />
                   <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                   <Stack.Screen name="Version" component={VersionScreen} />
+                  <Stack.Screen name="ContactSupport" component={ContactSupportScreen} />
+                  <Stack.Screen name="Audio" component={AudioScreen} />
+                  <Stack.Screen name="ArticleDetails" component={ArticleDetailsScreen} />
+                  <Stack.Screen name="Partner" component={PartnerScreen} />
                 </React.Fragment>
               )}
             </Stack.Navigator>
           </ThemeAwareNavigation>
         </ThemeProvider>
       </View>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
