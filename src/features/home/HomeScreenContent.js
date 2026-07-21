@@ -1,19 +1,20 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { View, Pressable, ScrollView, StyleSheet, Image, Platform } from 'react-native';
+import { View, Pressable, ScrollView, StyleSheet, Image, Platform, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { BookOpen, Search, History, Layers, Bookmark, Play, Bell, Calendar, BookText, User, Lock } from 'lucide-react-native';
-
+import { TestimonySlider } from './TestimonySlider';
+import { MachairaGallery } from './machairaGallery';
 import { AppText } from '../../components/AppText'; 
 import mp1 from '../../../assets/images/mp1.jpg';
 import { PastTabContent } from './homeArchive/PastTabContent';
 import { useTheme } from '../../context/ThemeContext';
-
-// Import the three isolated profile sheets securely
 import { GuestProfileModalSheet } from '../onboarding/profile/GuestProfile';
 import { LoggedInProfileModalSheet, EphemeralToastBanner } from '../onboarding/profile/LoggedInProfile';
 
 const TABS = ['Past', 'Related', 'Saved', 'Search'];
 
+const { width } = Dimensions.get('window');
 // ==========================================
 // 1. ATOMIC SUB-COMPONENTS
 // ==========================================
@@ -76,6 +77,7 @@ const FallbackTabContent = React.memo(({ tabName }) => {
   );
 });
 
+
 // ==========================================
 // 2. MAIN CORE COMPONENT
 // ==========================================
@@ -96,6 +98,7 @@ export default function MachairaHome({
   const [activeTab, setActiveTab] = useState('Past');
   const [toast, setToast] = useState({ visible: false, message: '' });
   const insets = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 64;
 
   const isGuest = !user;
   const isLoggedOut = !!(user && user.isLoggedOut);
@@ -103,8 +106,8 @@ export default function MachairaHome({
 
   const greetingText = useMemo(() => {
     if (isLoggedOut) return 'Sword sheathed, Return soon!';
-    if (isGuest) return 'Shalom, Machaira!';
-    return 'Shalom, Machaira!';
+    if (isGuest) return 'Shalom!';
+    return 'Shalom!';
   }, [isLoggedOut, isGuest]);
 
   const userDisplayName = useMemo(() => {
@@ -157,12 +160,14 @@ export default function MachairaHome({
     };
   }, []);
 
+  const [testimonyData, setTestimonyData] = useState([]);
+
+  useEffect(() => {
+  }, []);
+
   return (
     <View style={[styles.flexOne, { backgroundColor: colors.background }]}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent]} 
-      >
+
         {/* Profile Header Section */}
         <View
           style={[
@@ -238,7 +243,14 @@ export default function MachairaHome({
           </Pressable>
         </View>
 
-        {/* Feature Hero Banner Segment */}
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[
+          styles.scrollContent, 
+          { paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 20 }
+        ]}      
+        >
         <View
           style={[
             styles.heroWrapper,
@@ -309,6 +321,32 @@ export default function MachairaHome({
         ) : (
           <FallbackTabContent tabName={activeTab} />
         )}
+
+        <View style={[styles.youtubeWrapper]}>
+          <YoutubePlayer
+            height={245}
+            width={width}
+            videoId={"9Rx_B4htGn0"} 
+          />
+          <View style={styles.liveBadge}>
+          <AppText type="bold" style={styles.liveBadgeText}>LIVE</AppText>
+          </View>
+          <View style={styles.heroPane}>
+            <AppText type="bold" style={{ color: colors.text, fontSize: 16 }}>
+              The Commonwealth Digital Church
+            </AppText>
+            <AppText type="regular" style={{ color: colors.textSecondary, fontSize: 13, marginTop: 6 }}>
+              Worship with us from anywhere. Join all our services on Youtube.
+            </AppText>
+          </View>
+        </View>
+
+      <TestimonySlider data={testimonyData} />
+      <MachairaGallery />
+
+
+
+
       </ScrollView>
 
       {/* ==========================================
@@ -354,7 +392,7 @@ const styles = StyleSheet.create({
   rowCenter: { flexDirection: 'row', alignItems: 'center' },
   actionRow: { flexDirection: 'row', width: '100%' }, 
   scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, marginBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, marginBottom: 20 },
   profileTarget: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 16 },
   avatarAnchorContainer: { position: 'relative', width: 38, height: 38 },
   avatarImage: { width: 38, height: 38, borderRadius: 19 },
@@ -365,8 +403,7 @@ const styles = StyleSheet.create({
   greetingLoggedOutMicro: { fontStyle: 'bold', textTransform: 'none' },
   profileName: { fontSize: 15, marginTop: -1 },
   profileLoggedOutName: {},
-  subscribeBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  subscribeText: { fontSize: 11, letterSpacing: 0.3 },
+  subscribeBtn: { flexDirection: 'row', alignItems: 'center', padding: 11, borderRadius: 20, },
   heroWrapper: { borderRadius: 16, overflow: 'hidden', marginBottom: 28, borderWidth: 1, ...Platform.select({ ios: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16 }, android: { elevation: 4 } }) },
   heroImage: { width: '100%', height: 195 },
   heroPane: { padding: 20, alignItems: 'flex-start' },
@@ -390,5 +427,10 @@ const styles = StyleSheet.create({
   bellIconSpacing: { marginRight: 5 },
   calendarIconSpacing: { marginRight: 6 },
   playIconSpacing: { marginRight: 8 },
-  bookIconSpacing: { marginRight: 8 }
+  bookIconSpacing: { marginRight: 8 },
+  youtubeWrapper: { width: '100vw', alignSelf: 'stretch', marginBottom: 20, marginTop: 60, marginHorizontal: -16,   
+  backgroundColor: 'transparent', paddingHorizontal: 0, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#e2e8f0',},
+  liveBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: '#ef4444',  paddingHorizontal: 8,
+  paddingVertical: 4, borderRadius: 4,},
+  liveBadgeText: { color: '#fff', fontSize: 10,}
 });

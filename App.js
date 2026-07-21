@@ -1,6 +1,6 @@
 import "react-native-url-polyfill/auto";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert} from "react-native";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { View, Image, StyleSheet, StatusBar, Platform, Pressable, Alert, Animated, Easing} from "react-native";
 import { NavigationContainer, DefaultTheme, DarkTheme,} from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from "./src/config/supabaseClient";
 import { AppText } from "./src/components/AppText";
 import { OnboardingScreen } from "./src/features/onboarding/OnboardingScreen";
+import AIChatScreen from "./src/features/machairaAi/chatScreen";
 import HomeScreen from "./src/features/home/HomeScreenContent";
 import { BibleTabContent } from "./src/features/bible/BibleTabContent";
 import { MoreScreen } from "./src/features/more/moreScreen";
@@ -28,14 +29,18 @@ import SettingsScreen from "./src/features/more/Settings";
 import VersionScreen from "./src/features/more/Version";
 import PrivacyPolicyScreen from "./src/features/more/PrivacyPolicy";
 import { ContactSupportScreen } from "./src/features/more/ContactSupport";
+import { CommunityScreen } from "./src/features/more/CommunityScreen";
+import { BibleTrivia } from "./src/features/more/BibleTrivia";
 import { AudioScreen } from "./src/features/Library/Audio";
 import { ArticleDetailsScreen } from "./src/features/Library/ArticleDetailsScreen";
 import { PartnerScreen } from "./src/features/more/partner";
+import { PartnershipScreen } from "./src/features/more/PartnershipScreen";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import machairabot from "./assets/images/machairabot.png";
 import * as Linking from "expo-linking";
 import { executeGoogleSignIn } from "./src/features/onboarding/googleAuth";
 import * as WebBrowser from "expo-web-browser";
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 WebBrowser.maybeCompleteAuthSession();
 const Tab = createBottomTabNavigator();
@@ -56,31 +61,6 @@ const CenterScreen = React.memo(({ title }) => {
   );
 });
 
-const AIChatScreen = React.memo(() => {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.aiCenter, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.fallbackContainer,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <Image
-          source={machairabot}
-          style={[styles.aiLogo, { tintColor: colors.primary }]}
-          resizeMode="contain"
-        />
-        <AppText
-          type="semiBold"
-          style={[styles.fallbackText, { color: colors.textSecondary }]}
-        >
-          Machaira AI Chat coming soon...
-        </AppText>
-      </View>
-    </View>
-  );
-});
 
 const MemoizedMyNotes = React.memo(({ navigation }) => (
   <MyNotesTabContent
@@ -171,10 +151,22 @@ function BaseTabNavigator({
     navigation.navigate("SupportFeedback");
   }, [navigation]);
 
+const pulseAnim = useRef(new Animated.Value(1)).current;
+
+useEffect(() => {
+  Animated.loop(
+    Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+    ])
+  ).start();
+}, []);
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: styles.navLabel,
@@ -226,53 +218,31 @@ function BaseTabNavigator({
       </Tab.Screen>
 
       <Tab.Screen
-        name="AI_Chat"
-        component={AIChatScreen}
-        options={{
-          tabBarButton: (props) => (
-            <Pressable
-              {...props}
-              style={[
-                props.style,
-                styles.navButtonAI,
-                props.accessibilityState?.selected &&
-                  styles.navButtonAIFocused,
-              ]}
-            >
-              <View
-                style={[
-                  styles.aiIconAnchor,
-                  {
-                    backgroundColor: isDark ? "rgba(239,68,68,0.15)" : "#fef2f2",
-                  },
-                  props.accessibilityState?.selected && [
-                    styles.aiIconAnchorFocused,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(239,68,68,0.25)"
-                        : "#fee2e2",
-                      borderColor: colors.primary,
-                    },
-                  ],
-                ]}
-              >
-                <Image
-                  source={machairabot}
-                  style={[styles.aiNavImage, { tintColor: colors.primary }]}
-                  resizeMode="contain"
-                />
-                <AppText
-                  type="bold"
-                  numberOfLines={1}
-                  style={[styles.aiButtonLabel, { color: colors.primary }]}
-                >
-                  Machaira AI
-                </AppText>
-              </View>
-            </Pressable>
-          ),
-        }}
-      />
+      name="AI_Chat"
+      component={AIChatScreen}
+      options={{
+        tabBarButton: (props) => {
+  const isFocused = props.accessibilityState?.selected;
+  return (
+    <Pressable {...props}>
+      <Animated.View style={[
+        styles.aiIconAnchor, 
+        { transform: [{ scale: pulseAnim }], backgroundColor: isFocused ? colors.primary : (isDark ? "#262626" : "#fef2f2") }
+      ]}>
+        <Image 
+          source={machairabot} 
+          style={[styles.aiNavImage, { tintColor: isFocused ? "#fff" : colors.primary }]} 
+        />
+        <AppText type="bold" style={[styles.aiButtonLabel, { color: isFocused ? "#fff" : colors.primary }]}>
+          A I
+        </AppText>
+      </Animated.View>
+      
+    </Pressable>
+  );
+}
+      }}
+    />
 
       <Tab.Screen
         name="Library"
@@ -280,7 +250,7 @@ function BaseTabNavigator({
           tabBarIcon: ({ color, focused }) =>
             renderIcon(FolderHeart, focused, color),
         }}
-      >
+      >ggggfgf
         {() => (
           <View style={styles.flexOne}>
             <LibraryScreen />
@@ -591,6 +561,9 @@ export default function App() {
                   <Stack.Screen name="Audio" component={AudioScreen} />
                   <Stack.Screen name="ArticleDetails" component={ArticleDetailsScreen} />
                   <Stack.Screen name="Partner" component={PartnerScreen} />
+                  <Stack.Screen name="PartnershipScreen" component={PartnershipScreen} />
+                  <Stack.Screen name="Community" component={CommunityScreen} />
+                  <Stack.Screen name="BibleTrivia" component={BibleTrivia} />
                 </React.Fragment>
               )}
             </Stack.Navigator>
@@ -604,98 +577,23 @@ export default function App() {
 
 const styles = StyleSheet.create({
   flexOne: { flex: 1 },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f8fafc",
-  },
-  aiCenter: {
-    flex: 1,
-    paddingHorizontal: 16,
-    justifyContent: "center",
-    backgroundColor: "#f8fafc",
-  },
-  fallbackContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
+  navLabel: { fontSize: 10, marginTop: 4, textAlign: "center", fontWeight: "600" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f8fafc" }, 
+  aiCenter: { flex: 1, paddingHorizontal: 16, justifyContent: "center", backgroundColor: "#f8fafc" },
+  fallbackContainer: { backgroundColor: "#ffffff", borderRadius: 16, padding: 32, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#f1f5f9" },
   fallbackText: { color: "#64748b", fontSize: 14, marginTop: 8 },
-  aiLogo: { width: 64, height: 64, tintColor: "#ef4444", marginBottom: 12 },
-  footer: {
-    flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    overflow: "visible",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#0f172a",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.03,
-        shadowRadius: 10,
-      },
-      android: { elevation: 8 },
-    }),
+  aiLogo: { width: 64, height: 64, marginBottom: 12 },
+  footer: { flexDirection: "row", backgroundColor: "#ffffff", borderTopWidth: 1, borderTopColor: "#f1f5f9", position: "absolute", bottom: 0, left: 0, right: 0, overflow: "visible", 
+    ...Platform.select({ ios: { shadowColor: "#0f172a", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.03, shadowRadius: 10 }, android: { elevation: 8 } }) 
   },
-  iconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  minimalDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#ef4444",
-    position: "absolute",
-    bottom: -6,
-  },
+  iconContainer: { alignItems: "center", justifyContent: "center", position: "relative" },
+  minimalDot: { width: 4, height: 4, borderRadius: 2, position: "absolute", bottom: -6 },
   navButtonAI: { justifyContent: "flex-start", alignItems: "center" },
   navButtonAIFocused: { transform: [{ scale: 1.05 }] },
-  aiIconAnchor: {
-    width: 64,
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: "#fef2f2",
-    alignItems: "center",
-    justifyContent: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#ef4444",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: { elevation: 4 },
-    }),
+  aiIconAnchor: { width: 64, height: 54, borderRadius: 29, alignItems: "center", justifyContent: "center", borderColor: "#fff",
+    ...Platform.select({ ios: { shadowColor: "#ef4444", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 4 }, android: { elevation: 4 } }) 
   },
-  aiIconAnchorFocused: {
-    backgroundColor: "#fee2e2",
-    borderWidth: 1,
-    borderColor: "#ef4444",
-  },
-  aiNavImage: { width: 22, height: 22, tintColor: "#ef4444", marginBottom: 2 },
-  aiButtonLabel: {
-    color: "#ef4444",
-    fontSize: 9,
-    letterSpacing: -0.2,
-    textAlign: "center",
-    fontWeight: "700",
-  },
-  navLabel: {
-    fontSize: 10,
-    marginTop: 4,
-    textAlign: "center",
-    fontWeight: "600",
-  },
+  aiIconAnchorFocused: { borderWidth: 1 },
+  aiNavImage: { width: 22, height: 22, marginBottom: 2 },
+  aiButtonLabel: { fontSize: 9, letterSpacing: -0.2, textAlign: "center", fontWeight: "900" },
 });

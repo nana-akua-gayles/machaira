@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, Pressable, SafeAreaView, Alert, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Alert, Dimensions } from 'react-native';
 import { AppText } from '../../components/AppText';
 import { User, Handshake, Settings, Globe2, Heart, BookOpenCheck, Quote } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const { width } = Dimensions.get('window');
 
@@ -15,18 +17,18 @@ const QUOTES = [
   "Irrespective of what you think of yourself or your history, the Lord knows you by name precious one. You matter to Him and He values you.",
   "No matter the present day evil, God’s provision of grace is superabounding. As many as will turn to God and have faith in Him shall be satisfied by God grace.",
   "Test all things by the WORD OF GOD; that is true discernment not cynicism.",
-  "His grace is sufficient for every challenge.",
-  "Prayer is the breath of the believer.",
-  "Your potential is unlocked through obedience.",
-  "Seek His face in every season.",
-  "The Kingdom of God is within you.",
-  "Love is the greatest commandment.",
-  "Stay rooted in the truth.",
-  "Wisdom begins with the fear of the Lord.",
-  "Press toward the mark of the high calling.",
-  "His promises are yes and amen.",
-  "Transform your mind with the Word.",
-  "Walk in the authority given to you."
+  "God upholds His words over His works, for His works is a finished matter. The end can only be GLORIOUS!",
+  "It's not by mistake God brought you to a fellowship like this, it's by His stakes.",
+  "The righteousness of God is not your second nature. It is your original nature. That is your identity.",
+  "To be called unto Glory is to be a satisfaction unto others. Glory is not kept but shown. People must see God through you!",
+  "God takes interest in you when you take interest in the affairs of His Kingdom. Your life is part of God's battle strategy. Beloved be a warrior Son.",
+  "With God, He doesn't ask you what you bring to the table. He prepares the table before you. Yours is to faithfully enjoy.",
+  "Until you become a living scarifice, you cannot be offered to God. What cannot be offered to God cannot be used by Him.",
+  "God's commandment does not lead to burdensome grave; God's commandment as revealed in Christ, IS LIFE.",
+  "Anything that brings glory to God must be done in faith. Faith is an unflinching confidence in who God is and what He has said.",
+  "There are words or utterances which are designed to pierce and wound your heart. The goal is to leave you discoraged. Don't allow negative words to ruin your courage.",
+  "Until your mind can see or imagine the manifestation of what God has said, the hands cannot handle it.",
+  "Every communication of God is to take us on a journey of understanding. God's questions lead men into light."
 ];
 
 const QuoteItem = memo(({ item }) => (
@@ -43,7 +45,7 @@ const TOOLS = [
   { id: 'about', title: 'About Author', icon: User, sub: 'The heart and mind behind Machaira', color: 'red', screen: 'AboutAuthor' },
   { id: 'trivia', title: 'Bible Trivia / Game', icon: BookOpenCheck, sub: 'Test your biblical knowledge', color: '#f59e0b', screen: 'BibleTrivia' },
   { id: 'partner', title: 'Be a Partner', icon: Handshake, sub: 'A co-labourer with God', color: '#f59e0b', screen: 'Partner' },
-  { id: 'social', title: 'Community', icon: Globe2, sub: 'Join Biblical conversations', color: 'red', screen: null },
+  { id: 'social', title: 'Community', icon: Globe2, sub: 'Join Biblical conversations', color: 'red', screen: 'Community' },
   { id: 'handle', title: 'Follow Us', icon: Heart, sub: 'Social Media handles', color: 'red', screen: 'FollowUs' },
   { id: 'settings', title: 'Settings', icon: Settings, sub: 'App preferences', color: '#352a48', screen: 'Settings' },
 ];

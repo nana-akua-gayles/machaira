@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Linking, SafeAreaView, ScrollView, StatusBar, Platform } from 'react-native';
+import { View, StyleSheet, Pressable, Linking, ScrollView, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';

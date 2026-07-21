@@ -51,13 +51,12 @@ export const LibraryScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         
         <View style={styles.header}>
           <AppText type="bold" style={[styles.mainTitle, { color: colors.text }]}>Library</AppText>
         </View>
 
-        {/* Featured Hero */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <Pressable style={styles.heroFeature} onPress={() => openFacebookLink('https://www.facebook.com/share/p/18DbYj4rY2/?mibextid=wwXIfr')}>
           <ImageBackground 
             source={require('../../../assets/images/Apostle1.jpg')} 

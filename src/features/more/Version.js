@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, Pressable, Platform, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Platform, Linking } from 'react-native';
 import { ChevronLeft, Info, FileText, Globe, Star } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import * as Application from 'expo-application';

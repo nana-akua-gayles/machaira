@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, FlatList, Image, Pressable, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, Image, Pressable, TouchableOpacity } from 'react-native';
 import { AppText } from '../../components/AppText';
 import { Play, ChevronLeft, Download } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const AUDIO_DATA = [
   { id: '1', title: 'The Power of Grace', duration: '45:20', flyer: 'https://images.unsplash.com/photo-1543682729-e263611352e4?w=400' },

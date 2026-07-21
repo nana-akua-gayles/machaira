@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, Switch, Pressable, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Pressable, Platform } from 'react-native';
 import { ChevronRight, ChevronLeft, LogOut, Trash2, Bell, Moon, ShieldCheck, Mail, Info } from 'lucide-react-native';
 import { AppText } from '../../components/AppText';
 import { useTheme } from '../../context/ThemeContext';
 import * as Application from 'expo-application';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const SettingRow = ({ icon: Icon, title, onPress, type = 'action', value, onValueChange, destructive, colors = {}, isDark = false }) => (
   <TouchableOpacity 
